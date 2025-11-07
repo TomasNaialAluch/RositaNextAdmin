@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agregar Producto - Rosita Admin</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, addDoc, getDocs, getDoc, query, where, updateDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyCdilgyg87D9pDIM1Gvs-H5DqtfbTpC3ys",
+            authDomain: "rosita-b76eb.firebaseapp.com",
+            projectId: "rosita-b76eb",
+            storageBucket: "rosita-b76eb.appspot.com",
+            messagingSenderId: "778473943709",
+            appId: "1:778473943709:web:a44d114c61ab7456f99a74",
+            measurementId: "G-JHC9CKT0BS"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        
+        window.db = db;
+        window.addDoc = addDoc;
+        window.collection = collection;
+        window.getDocs = getDocs;
+        window.getDoc = getDoc;
+        window.query = query;
+        window.where = where;
+        window.updateDoc = updateDoc;
+        window.doc = doc;
+        window.storage = storage;
+        window.ref = ref;
+        window.uploadBytes = uploadBytes;
+        window.getDownloadURL = getDownloadURL;
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="images/logo-sin-fondo.png" alt="Rosita" class="logo-grande" style="max-width: 100px;">
+            <h1>Agregar Producto</h1>
+        </header>
+        
+        <nav>
+            <a href="index.html">🏠 Inicio</a>
+            <a href="agregar-producto.html">➕ Agregar Producto</a>
+            <a href="gestionar-productos.html">📋 Gestionar Productos</a>
+            <a href="ver-pedidos.html">📦 Ver Pedidos</a>
+            <a href="ver-clientes.html">👥 Ver Clientes</a>
+            <a href="cargar-receta.html">📝 Cargar Receta</a>
+        </nav>
+        
+        <main>
+            <h2 class="page-title">Crear Producto con Variantes</h2>
+            
+            <div id="message"></div>
+            
+            <!-- Paso 1: Crear Producto Base -->
+            <div class="form-container" id="productoBaseSection">
+                <h3 style="color: var(--rosa-principal); margin-bottom: 20px;">Paso 1: Información del Producto Base</h3>
+                <form id="productoBaseForm">
+                    <div class="form-group">
+                        <label for="nombreBase">Nombre del Corte/Producto *</label>
+                        <input type="text" id="nombreBase" name="nombreBase" placeholder="Ej: Bife de Chorizo" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="categoria">Categoría *</label>
+                        <select id="categoria" name="categoria" required>
+                            <option value="">Seleccione una categoría</option>
+                            <option value="pollo">Pollo</option>
+                            <option value="vacuno">Vacuno</option>
+                            <option value="cerdo">Cerdo</option>
+                            <option value="embutidos">Embutidos</option>
+                            <option value="otros">Otros</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="imagenFile">Imagen principal del producto *</label>
+                        <input type="file" id="imagenFile" name="imagenFile" accept="image/*">
+                        <small>Formatos aceptados: JPG, PNG, WEBP. Tamaño recomendado: 800x600 px.</small>
+                    </div>
+                    
+                    <div class="image-preview" id="baseImagePreview" style="display: none;">
+                        <p>Imagen actual:</p>
+                        <img id="baseImagePreviewImg" src="" alt="Imagen del producto base">
+                    </div>
+                    
+                    <button type="submit" class="btn">Crear Producto Base</button>
+                </form>
+            </div>
+            
+            <!-- Paso 2: Agregar Variantes/Marcas -->
+            <div class="form-container" id="varianteSection" style="display: none; margin-top: 30px;">
+                <h3 style="color: var(--rosa-principal); margin-bottom: 20px;">
+                    Paso 2: Agregar Variante/Marca al Producto
+                    <span id="productoNombre" style="color: var(--rosa-oscuro); font-size: 0.8em;"></span>
+                </h3>
+                
+                <form id="varianteForm">
+                    <input type="hidden" id="productoId" name="productoId">
+                    
+                    <div class="form-group">
+                        <label for="marcaNombre">Nombre de la Marca/Variante *</label>
+                        <input type="text" id="marcaNombre" name="marcaNombre" placeholder="Ej: Tresnal, Fresco, Premium" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="imagenVariante">Imagen de la variante *</label>
+                        <input type="file" id="imagenVariante" name="imagenVariante" accept="image/*" required>
+                        <small>Sube la foto específica de esta marca/presentación.</small>
+                    </div>
+                    
+                    <div class="image-preview" id="varianteImagePreview" style="display: none;">
+                        <p>Imagen actual de la variante:</p>
+                        <img id="varianteImagePreviewImg" src="" alt="Imagen de la variante">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="descripcion">Descripción de la Variante *</label>
+                        <textarea id="descripcion" name="descripcion" rows="3" placeholder="Ej: Viene envasado al vacío, se vende por unidad" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="precio">Precio ($) *</label>
+                        <input type="number" id="precio" name="precio" step="0.01" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="sellBy">Formato de Venta *</label>
+                        <select id="sellBy" name="sellBy" required onchange="togglePesoField()">
+                            <option value="">Seleccione formato</option>
+                            <option value="unidad">Por Unidad</option>
+                            <option value="kg">Por Kilogramo</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="pesoGroup" style="display: none;">
+                        <label for="peso">Peso (kg)</label>
+                        <input type="number" id="peso" name="peso" step="0.1" min="0" placeholder="Ej: 5">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="minimumKg">Mínimo de Compra (kg)</label>
+                        <input type="number" id="minimumKg" name="minimumKg" step="0.1" min="0" value="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Opciones de Corte/Entrega</label>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="formatOptions" value="entero" style="margin-right: 8px; width: auto;">
+                                Entero
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="formatOptions" value="bifes-1-dedo" style="margin-right: 8px; width: auto;">
+                                Bifes a 1 dedo
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="formatOptions" value="bifes-2-dedos" style="margin-right: 8px; width: auto;">
+                                Bifes a 2 dedos
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="formatOptions" value="bifes-3-dedos" style="margin-right: 8px; width: auto;">
+                                Bifes a 3 dedos
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="formatOptions" value="banderita" style="margin-right: 8px; width: auto;">
+                                Banderita
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="formatOptions" value="cortado-3-dedos" style="margin-right: 8px; width: auto;">
+                                Cortado a 3 dedos
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="formatOptions" value="cortado-5-dedos" style="margin-right: 8px; width: auto;">
+                                Cortado a 5 dedos
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="formatOptions" value="picado" style="margin-right: 8px; width: auto;">
+                                Picado
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="formatOptions" value="milanesas" style="margin-right: 8px; width: auto;">
+                                Milanesas
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Opciones de Hueso</label>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="boneOptions" value="con-hueso" style="margin-right: 8px; width: auto;">
+                                Con Hueso
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="boneOptions" value="sin-hueso" style="margin-right: 8px; width: auto;">
+                                Sin Hueso
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="stock">Stock Disponible *</label>
+                        <input type="number" id="stock" name="stock" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="inStock" name="inStock" checked style="margin-right: 8px; width: auto;">
+                            En Stock
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="featured" name="featured" style="margin-right: 8px; width: auto;">
+                            Producto Destacado
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn">Guardar Variante</button>
+                    <button type="button" class="btn btn-secondary" onclick="resetVarianteForm()" style="margin-left: 10px;">Agregar Otra Variante</button>
+                    <a href="gestionar-productos.html" class="btn btn-secondary" style="margin-left: 10px; text-decoration: none; display: inline-block;">Ver Todos los Productos</a>
+                </form>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        const messageDiv = document.getElementById('message');
+        let productoBaseId = null;
+        let productoBaseImagen = '';
+        let modoEdicionBase = false;
+        let modoEdicionVariante = false;
+        let nombreBaseOriginal = '';
+        let varianteDocId = null;
+        let varianteImagenActual = '';
+        let varianteEditData = null;
+        
+        const uploadImage = async (file, path) => {
+            if (!file) return '';
+            const storageRef = ref(window.storage, path);
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+            return url;
+        };
+        
+        // Función para mostrar/ocultar campo de peso
+        function togglePesoField() {
+            const sellBy = document.getElementById('sellBy').value;
+            const pesoGroup = document.getElementById('pesoGroup');
+            if (sellBy === 'unidad') {
+                pesoGroup.style.display = 'block';
+            } else {
+                pesoGroup.style.display = 'none';
+            }
+        }
+        
+        // Verificar si está ejecutándose desde file:// y mostrar advertencia
+        if (window.location.protocol === 'file:') {
+            messageDiv.innerHTML = `
+                <div class="message error" style="padding: 20px; font-size: 1.1em;">
+                    <strong>⚠️ ERROR: Estás abriendo el archivo directamente</strong><br><br>
+                    Para que Firebase Storage funcione, necesitas ejecutar un servidor local.<br><br>
+                    <strong>Soluciones rápidas:</strong><br>
+                    1. <strong>Python:</strong> Abre terminal en esta carpeta y ejecuta: <code>python -m http.server 8000</code><br>
+                    2. <strong>Node.js:</strong> Ejecuta: <code>npx http-server -p 8000</code><br>
+                    3. Luego abre: <strong>http://localhost:8000/agregar-producto.html</strong><br><br>
+                    También puedes abrir <a href="INSTRUCCIONES-CORS.html" style="color: #B23A61; font-weight: bold;">INSTRUCCIONES-CORS.html</a> para más detalles.
+                </div>
+            `;
+        }
+        
+        // Verificar si hay un producto base guardado en sessionStorage
+        window.addEventListener('DOMContentLoaded', async () => {
+            const productoBaseGuardado = sessionStorage.getItem('productoBase');
+            const editarBaseData = sessionStorage.getItem('editarProductoBase');
+            const editarVarianteData = sessionStorage.getItem('editarVariante');
+            const baseButton = document.querySelector('#productoBaseForm button[type="submit"]');
+            const basePreview = document.getElementById('baseImagePreview');
+            const basePreviewImg = document.getElementById('baseImagePreviewImg');
+            const variantePreview = document.getElementById('varianteImagePreview');
+            const variantePreviewImg = document.getElementById('varianteImagePreviewImg');
+            
+            if (editarBaseData) {
+                const data = JSON.parse(editarBaseData);
+                sessionStorage.removeItem('editarProductoBase');
+                modoEdicionBase = true;
+                productoBaseId = data.id || null;
+                nombreBaseOriginal = data.name || '';
+                productoBaseImagen = data.image || '';
+                
+                document.getElementById('nombreBase').value = data.name || '';
+                if (data.category) {
+                    document.getElementById('categoria').value = data.category;
+                }
+                
+                if (productoBaseImagen && basePreview && basePreviewImg) {
+                    basePreviewImg.src = productoBaseImagen;
+                    basePreview.style.display = 'block';
+                }
+                
+                if (baseButton) {
+                    baseButton.textContent = 'Guardar cambios del producto base';
+                }
+                
+                document.getElementById('varianteSection').style.display = 'block';
+                document.getElementById('productoNombre').textContent = ` - ${data.name || ''}`;
+                messageDiv.innerHTML = '<div class="message success">Editando el producto base seleccionado.</div>';
+                setTimeout(() => {
+                    messageDiv.innerHTML = '';
+                }, 3000);
+            } else if (productoBaseGuardado) {
+                document.getElementById('nombreBase').value = productoBaseGuardado;
+                sessionStorage.removeItem('productoBase');
+                messageDiv.innerHTML = '<div class="message success">Producto base pre-seleccionado. Complete la categoría y haga clic en "Crear Producto Base".</div>';
+            }
+            
+            if (editarVarianteData) {
+                const data = JSON.parse(editarVarianteData);
+                sessionStorage.removeItem('editarVariante');
+                modoEdicionVariante = true;
+                varianteDocId = data.id;
+                varianteEditData = data;
+                productoBaseId = data.baseId || productoBaseId;
+                nombreBaseOriginal = data.baseName || nombreBaseOriginal || '';
+                productoBaseImagen = data.baseImage || productoBaseImagen || '';
+                varianteImagenActual = data.image || '';
+                
+                if (data.baseName) {
+                    document.getElementById('nombreBase').value = data.baseName;
+                }
+                if (data.category) {
+                    document.getElementById('categoria').value = data.category;
+                }
+                
+                document.getElementById('productoBaseForm').style.opacity = '0.6';
+                document.getElementById('productoBaseForm').style.pointerEvents = 'none';
+                document.getElementById('nombreBase').setAttribute('readonly', 'readonly');
+                document.getElementById('categoria').setAttribute('disabled', 'disabled');
+                if (basePreview && basePreviewImg && productoBaseImagen) {
+                    basePreviewImg.src = productoBaseImagen;
+                    basePreview.style.display = 'block';
+                }
+                
+                document.getElementById('varianteSection').style.display = 'block';
+                document.getElementById('productoNombre').textContent = ` - ${data.baseName || ''}`;
+                
+                document.getElementById('marcaNombre').value = data.variant || '';
+                document.getElementById('descripcion').value = data.description || '';
+                document.getElementById('precio').value = data.price || 0;
+                
+                if (data.sellBy) {
+                    document.getElementById('sellBy').value = data.sellBy;
+                } else if (data.sale_format) {
+                    document.getElementById('sellBy').value = data.sale_format.toLowerCase().includes('unidad') ? 'unidad' : 'kg';
+                }
+                togglePesoField();
+                
+                if (data.sellBy === 'unidad' && data.minimumKg) {
+                    document.getElementById('peso').value = data.minimumKg;
+                }
+                if (data.minimumKg) {
+                    document.getElementById('minimumKg').value = data.minimumKg;
+                }
+                
+                const formatOptions = data.formatOptions || [];
+                document.querySelectorAll('input[name="formatOptions"]').forEach(cb => {
+                    cb.checked = formatOptions.includes(cb.value);
+                });
+                
+                const boneOptions = data.boneOptions || [];
+                document.querySelectorAll('input[name="boneOptions"]').forEach(cb => {
+                    cb.checked = boneOptions.includes(cb.value);
+                });
+                
+                document.getElementById('stock').value = data.stock || 0;
+                document.getElementById('inStock').checked = data.inStock;
+                document.getElementById('featured').checked = data.featured;
+                
+                if (varianteImagenActual && variantePreview && variantePreviewImg) {
+                    variantePreviewImg.src = varianteImagenActual;
+                    variantePreview.style.display = 'block';
+                }
+                
+                const varianteButton = document.querySelector('#varianteForm button[type="submit"]');
+                if (varianteButton) {
+                    varianteButton.textContent = 'Guardar cambios de la variante';
+                }
+                
+                messageDiv.innerHTML = '<div class="message success">Editando la variante seleccionada. Actualiza los datos y guarda los cambios.</div>';
+                setTimeout(() => {
+                    messageDiv.innerHTML = '';
+                }, 4000);
+            }
+        });
+        
+        // Formulario de Producto Base
+        document.getElementById('productoBaseForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const nombreBase = document.getElementById('nombreBase').value;
+            const categoria = document.getElementById('categoria').value;
+            const imagenFile = document.getElementById('imagenFile').files[0];
+            
+            // Función auxiliar para crear producto base
+            const crearProductoBase = async () => {
+                if (!imagenFile && !productoBaseImagen) {
+                    messageDiv.innerHTML = '<div class="message error">❌ Debes subir una imagen principal del producto.</div>';
+                    throw { code: 'MISSING_IMAGE' };
+                }
+                let imagenUrl = productoBaseImagen;
+                if (imagenFile) {
+                    const slug = nombreBase.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+                    imagenUrl = await uploadImage(imagenFile, `products/${slug}/main-${Date.now()}`);
+                    productoBaseImagen = imagenUrl;
+                }
+                const productoBase = {
+                    name: nombreBase,
+                    category: categoria,
+                    image: imagenUrl,
+                    image_url: imagenUrl,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                };
+                
+                const docRef = await window.addDoc(window.collection(window.db, 'products'), productoBase);
+                return docRef.id;
+            };
+            
+            // Verificar si el producto ya existe
+            try {
+                // Buscar por nombre exacto o por baseProduct
+                const q1 = window.query(
+                    window.collection(window.db, 'products'),
+                    window.where('name', '==', nombreBase)
+                );
+                const q2 = window.query(
+                    window.collection(window.db, 'products'),
+                    window.where('baseProduct', '==', nombreBase)
+                );
+                
+                const [snapshot1, snapshot2] = await Promise.all([
+                    window.getDocs(q1),
+                    window.getDocs(q2)
+                ]);
+                
+                if (!snapshot1.empty) {
+                    // Producto existe como base
+                    productoBaseId = snapshot1.docs[0].id;
+                    const existingData = snapshot1.docs[0].data();
+                    productoBaseImagen = existingData.image || '';
+                    if (imagenFile) {
+                        const slug = nombreBase.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+                        const nuevaImagen = await uploadImage(imagenFile, `products/${slug}/main-${Date.now()}`);
+                        if (nuevaImagen) {
+                            productoBaseImagen = nuevaImagen;
+                            await window.updateDoc(window.doc(window.db, 'products', productoBaseId), {
+                                image: nuevaImagen,
+                                image_url: nuevaImagen,
+                                updated_at: new Date().toISOString()
+                            });
+                        }
+                    }
+                    messageDiv.innerHTML = '<div class="message success">✅ Producto encontrado. Puedes agregar variantes ahora.</div>';
+                } else if (!snapshot2.empty) {
+                    // Existe como variante, usar el baseProduct
+                    const firstVariant = snapshot2.docs[0].data();
+                    if (firstVariant.baseProduct) {
+                        const qBase = window.query(
+                            window.collection(window.db, 'products'),
+                            window.where('name', '==', firstVariant.baseProduct)
+                        );
+                        const baseSnapshot = await window.getDocs(qBase);
+                        if (!baseSnapshot.empty) {
+                            productoBaseId = baseSnapshot.docs[0].id;
+                            const baseData = baseSnapshot.docs[0].data();
+                            productoBaseImagen = baseData.image || '';
+                            if (imagenFile) {
+                                const slug = nombreBase.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+                                const nuevaImagen = await uploadImage(imagenFile, `products/${slug}/main-${Date.now()}`);
+                                if (nuevaImagen) {
+                                    productoBaseImagen = nuevaImagen;
+                                    await window.updateDoc(window.doc(window.db, 'products', productoBaseId), {
+                                        image: nuevaImagen,
+                                        image_url: nuevaImagen,
+                                        updated_at: new Date().toISOString()
+                                    });
+                                }
+                            }
+                            messageDiv.innerHTML = '<div class="message success">✅ Producto encontrado. Puedes agregar variantes ahora.</div>';
+                        } else {
+                            // Crear nuevo producto base
+                            productoBaseId = await crearProductoBase();
+                            messageDiv.innerHTML = '<div class="message success">✅ Producto base creado. Ahora puedes agregar variantes.</div>';
+                        }
+                    } else {
+                        productoBaseId = await crearProductoBase();
+                        messageDiv.innerHTML = '<div class="message success">✅ Producto base creado. Ahora puedes agregar variantes.</div>';
+                    }
+                } else {
+                    // Crear nuevo producto base
+                    productoBaseId = await crearProductoBase();
+                    messageDiv.innerHTML = '<div class="message success">✅ Producto base creado. Ahora puedes agregar variantes.</div>';
+                }
+                
+                // Mostrar sección de variantes
+                document.getElementById('varianteSection').style.display = 'block';
+                document.getElementById('productoId').value = productoBaseId;
+                document.getElementById('productoNombre').textContent = ` - ${nombreBase}`;
+                document.getElementById('productoBaseForm').style.opacity = '0.6';
+                document.getElementById('productoBaseForm').style.pointerEvents = 'none';
+                
+                setTimeout(() => {
+                    messageDiv.innerHTML = '';
+                }, 3000);
+                
+            } catch (error) {
+                if (!(error && error.code === 'MISSING_IMAGE')) {
+                    console.error('Error al crear/buscar producto:', error);
+                    messageDiv.innerHTML = '<div class="message error">❌ Error al procesar. Intente nuevamente.</div>';
+                }
+            }
+        });
+        
+        // Formulario de Variante
+        document.getElementById('varianteForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!productoBaseId) {
+                messageDiv.innerHTML = '<div class="message error">❌ Primero debes crear o seleccionar un producto base.</div>';
+                return;
+            }
+            
+            const formatOptions = Array.from(document.querySelectorAll('input[name="formatOptions"]:checked')).map(cb => cb.value);
+            const boneOptions = Array.from(document.querySelectorAll('input[name="boneOptions"]:checked')).map(cb => cb.value);
+            
+            const imagenVarianteFile = document.getElementById('imagenVariante').files[0];
+            if (!imagenVarianteFile) {
+                messageDiv.innerHTML = '<div class="message error">❌ Debes subir la imagen de la variante.</div>';
+                return;
+            }
+            
+            const variante = {
+                name: document.getElementById('marcaNombre').value,
+                description: document.getElementById('descripcion').value,
+                price: parseFloat(document.getElementById('precio').value),
+                sellBy: document.getElementById('sellBy').value,
+                sale_format: document.getElementById('sellBy').value === 'unidad' ? 'Por unidad' : 'Por kilogramo',
+                stock: parseInt(document.getElementById('stock').value),
+                inStock: document.getElementById('inStock').checked,
+                featured: document.getElementById('featured').checked,
+                formatOptions: formatOptions,
+                boneOptions: boneOptions,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+            
+            // Agregar peso si es por unidad
+            if (document.getElementById('sellBy').value === 'unidad') {
+                const peso = parseFloat(document.getElementById('peso').value);
+                if (peso) {
+                    variante.minimumKg = peso;
+                    variante.minimum_kg = peso;
+                }
+            }
+            
+            // Agregar mínimo de compra si existe
+            const minimumKg = parseFloat(document.getElementById('minimumKg').value);
+            if (minimumKg > 0) {
+                variante.minimumKg = minimumKg;
+                variante.minimum_kg = minimumKg;
+            }
+            
+            try {
+                // Guardar variante como un nuevo documento en products
+                // Usaremos el nombre completo: "Producto Base - Variante"
+                const nombreCompleto = document.getElementById('nombreBase').value + ' - ' + variante.name;
+                
+                const productoCompleto = {
+                    name: nombreCompleto,
+                    baseProduct: document.getElementById('nombreBase').value,
+                    variant: variante.name,
+                    category: document.getElementById('categoria').value,
+                    ...variante
+                };
+                
+                // Obtener imagen del producto base si existe
+                const slugBase = document.getElementById('nombreBase').value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+                const slugVariante = variante.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+                const varianteUrl = await uploadImage(imagenVarianteFile, `products/${slugBase}/variantes/${slugVariante}-${Date.now()}`);
+                
+                if (varianteUrl) {
+                    productoCompleto.image = varianteUrl;
+                    productoCompleto.image_url = varianteUrl;
+                } else if (productoBaseImagen) {
+                    productoCompleto.image = productoBaseImagen;
+                    productoCompleto.image_url = productoBaseImagen;
+                }
+                
+                if (productoBaseImagen) {
+                    productoCompleto.baseImage = productoBaseImagen;
+                }
+                
+                await window.addDoc(window.collection(window.db, 'products'), productoCompleto);
+                
+                messageDiv.innerHTML = '<div class="message success">✅ Variante agregada correctamente</div>';
+                resetVarianteForm();
+                
+                setTimeout(() => {
+                    messageDiv.innerHTML = '';
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Error al agregar variante:', error);
+                messageDiv.innerHTML = '<div class="message error">❌ Error al agregar la variante. Intente nuevamente.</div>';
+            }
+        });
+        
+        function resetVarianteForm() {
+            document.getElementById('varianteForm').reset();
+            document.getElementById('inStock').checked = true;
+            togglePesoField();
+            const imagenVarianteInput = document.getElementById('imagenVariante');
+            if (imagenVarianteInput) {
+                imagenVarianteInput.value = '';
+            }
+        }
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Productos - Rosita Admin</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, getDocs, query, orderBy, deleteDoc, doc, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyCdilgyg87D9pDIM1Gvs-H5DqtfbTpC3ys",
+            authDomain: "rosita-b76eb.firebaseapp.com",
+            projectId: "rosita-b76eb",
+            storageBucket: "rosita-b76eb.appspot.com",
+            messagingSenderId: "778473943709",
+            appId: "1:778473943709:web:a44d114c61ab7456f99a74",
+            measurementId: "G-JHC9CKT0BS"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        window.db = db;
+        window.getDocs = getDocs;
+        window.collection = collection;
+        window.query = query;
+        window.orderBy = orderBy;
+        window.deleteDoc = deleteDoc;
+        window.doc = doc;
+        window.where = where;
+    </script>
+    <style>
+        .product-group {
+            margin-bottom: 30px;
+            border: 2px solid var(--rosa-claro);
+            border-radius: 10px;
+            padding: 20px;
+            background: var(--gris-claro);
+        }
+        
+        .product-base {
+            background: var(--rosa-principal);
+            color: var(--blanco);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+        
+        .product-base-info {
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .product-base-category {
+            font-weight: normal;
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .product-base-img {
+            max-height: 90px;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            object-fit: cover;
+        }
+        
+        .product-base-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        
+        .variants-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .variant-card {
+            background: var(--blanco);
+            border: 1px solid var(--gris-medio);
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .variant-card:hover {
+            border-color: var(--rosa-principal);
+            box-shadow: 0 4px 8px rgba(178, 58, 97, 0.2);
+        }
+        
+        .variant-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+        }
+        
+        .variant-img {
+            width: 100%;
+            max-height: 180px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid var(--gris-medio);
+        }
+        
+        .variant-name {
+            font-weight: bold;
+            color: var(--rosa-principal);
+            font-size: 1.1em;
+        }
+        
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+        
+        .variant-info {
+            font-size: 0.9em;
+            color: var(--negro);
+            margin-bottom: 5px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-right: 5px;
+            margin-top: 5px;
+        }
+        
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .add-variant-btn {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="images/logo-sin-fondo.png" alt="Rosita" class="logo-grande" style="max-width: 100px;">
+            <h1>Gestionar Productos</h1>
+        </header>
+        
+        <nav>
+            <a href="index.html">🏠 Inicio</a>
+            <a href="agregar-producto.html">➕ Agregar Producto</a>
+            <a href="gestionar-productos.html">📋 Gestionar Productos</a>
+            <a href="ver-pedidos.html">📦 Ver Pedidos</a>
+            <a href="ver-clientes.html">👥 Ver Clientes</a>
+            <a href="cargar-receta.html">📝 Cargar Receta</a>
+        </nav>
+        
+        <main>
+            <h2 class="page-title">Productos y Variantes</h2>
+            
+            <div id="loading" class="loading">Cargando productos...</div>
+            <div id="productos-container"></div>
+        </main>
+    </div>
+    
+    <script>
+        async function cargarProductos() {
+            const loadingDiv = document.getElementById('loading');
+            const containerDiv = document.getElementById('productos-container');
+            
+            try {
+                const q = window.query(window.collection(window.db, 'products'), window.orderBy('name', 'asc'));
+                const querySnapshot = await window.getDocs(q);
+                
+                loadingDiv.style.display = 'none';
+                
+                if (querySnapshot.empty) {
+                    containerDiv.innerHTML = `
+                        <div class="empty-state">
+                            <img src="images/logo-sin-fondo.png" alt="Sin productos">
+                            <h3>No hay productos registrados</h3>
+                            <p>Comienza agregando un producto desde el menú.</p>
+                            <a href="agregar-producto.html" class="btn" style="margin-top: 20px; display: inline-block;">Agregar Producto</a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Agrupar productos por producto base
+                const productosAgrupados = {};
+                
+                querySnapshot.forEach((docSnap) => {
+                    const producto = docSnap.data();
+                    const baseProduct = producto.baseProduct || producto.name.split(' - ')[0] || producto.name;
+                    
+                    if (!productosAgrupados[baseProduct]) {
+                        productosAgrupados[baseProduct] = {
+                            base: null,
+                            variants: []
+                        };
+                    }
+                    
+                    // Si tiene variante, agregarlo a variantes
+                    if (producto.variant || producto.name.includes(' - ')) {
+                        productosAgrupados[baseProduct].variants.push({
+                            id: docSnap.id,
+                            ...producto
+                        });
+                    } else {
+                        // Es el producto base
+                        productosAgrupados[baseProduct].base = {
+                            id: docSnap.id,
+                            ...producto
+                        };
+                    }
+                });
+                
+                let html = '';
+                
+                for (const [baseName, grupo] of Object.entries(productosAgrupados)) {
+                    const baseDoc = grupo.base;
+                    const baseCategory = (baseDoc && (baseDoc.category || baseDoc.categoria)) || 'Sin categoría';
+                    const baseImage = baseDoc?.image || baseDoc?.image_url || grupo.variants[0]?.baseImage || '';
+                    const baseId = baseDoc?.id || '';
+                    const baseData = {
+                        id: baseId,
+                        name: baseName,
+                        category: baseCategory,
+                        image: baseImage
+                    };
+                    const baseDataStr = encodeURIComponent(JSON.stringify(baseData));
+                    html += '<div class="product-group">';
+                    html += `
+                        <div class="product-base">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                ${baseImage ? `<img src="${baseImage}" alt="${baseName}" class="product-base-img">` : ''}
+                                <div>
+                                    <div class="product-base-info">${baseName}</div>
+                                    <div class="product-base-category">${baseCategory}</div>
+                                </div>
+                            </div>
+                            <div class="product-base-actions">
+                                ${baseId ? `<button class="btn btn-small" onclick="editarProductoBase('${baseDataStr}')">Editar Base</button>` : ''}
+                                ${baseId ? `<button class="btn btn-small btn-secondary" onclick="eliminarProductoBase('${baseDataStr}')">Eliminar Base</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                    
+                    if (grupo.variants.length > 0) {
+                        html += '<div class="variants-list">';
+                        
+                        grupo.variants.forEach(variant => {
+                            const formatOptions = variant.formatOptions || [];
+                            const boneOptions = variant.boneOptions || [];
+                            const variantImage = variant.image || variant.image_url || variant.baseImage || baseImage || '';
+                            const variantData = {
+                                id: variant.id,
+                                baseId: baseId,
+                                baseName: baseName,
+                                baseImage: baseImage,
+                                category: baseCategory,
+                                name: variant.name,
+                                variant: variant.variant || variant.name.split(' - ')[1] || '',
+                                description: variant.description || '',
+                                price: variant.price || 0,
+                                sellBy: variant.sellBy || '',
+                                sale_format: variant.sale_format || '',
+                                minimumKg: variant.minimumKg || variant.minimum_kg || 0,
+                                stock: variant.stock || 0,
+                                inStock: !!variant.inStock,
+                                featured: !!variant.featured,
+                                formatOptions,
+                                boneOptions,
+                                image: variant.image || variant.image_url || '',
+                                created_at: variant.created_at || '',
+                                updated_at: variant.updated_at || ''
+                            };
+                            const variantDataStr = encodeURIComponent(JSON.stringify(variantData));
+                            
+                            html += `
+                                <div class="variant-card">
+                                    ${variantImage ? `<img src="${variantImage}" alt="${variant.variant || variant.name}" class="variant-img">` : ''}
+                                    <div class="variant-header">
+                                        <div class="variant-name">${variant.variant || variant.name.split(' - ')[1] || variant.name}</div>
+                                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                            <button class="btn btn-small" onclick="editarVariante('${variantDataStr}')">Editar</button>
+                                            <button class="btn btn-small btn-secondary" onclick="eliminarVariante('${variant.id}', '${variant.name}')">Eliminar</button>
+                                        </div>
+                                    </div>
+                                    <div class="variant-info"><strong>Descripción:</strong> ${variant.description || 'Sin descripción'}</div>
+                                    <div class="variant-info"><strong>Precio:</strong> $${variant.price?.toFixed(2) || '0.00'}</div>
+                                    <div class="variant-info"><strong>Venta:</strong> ${variant.sale_format || variant.sellBy || 'N/A'}</div>
+                                    ${variant.minimumKg ? `<div class="variant-info"><strong>Peso:</strong> ${variant.minimumKg} kg</div>` : ''}
+                                    <div class="variant-info"><strong>Stock:</strong> ${variant.stock || 0}</div>
+                                    <div style="margin-top: 10px;">
+                                        ${variant.inStock ? '<span class="badge badge-success">En Stock</span>' : '<span class="badge badge-danger">Sin Stock</span>'}
+                                        ${variant.featured ? '<span class="badge badge-info">Destacado</span>' : ''}
+                                    </div>
+                                    ${formatOptions.length > 0 ? `<div style="margin-top: 10px;"><strong>Cortes:</strong> ${formatOptions.join(', ')}</div>` : ''}
+                                    ${boneOptions.length > 0 ? `<div style="margin-top: 5px;"><strong>Hueso:</strong> ${boneOptions.join(', ')}</div>` : ''}
+                                </div>
+                            `;
+                        });
+                        
+                        html += '</div>';
+                    } else {
+                        html += '<p style="color: var(--gris-medio); padding: 20px;">No hay variantes para este producto. <a href="agregar-producto.html">Agregar variante</a></p>';
+                    }
+                    
+                    html += `<button class="btn add-variant-btn" onclick="agregarVariante('${baseName}')">➕ Agregar Variante a "${baseName}"</button>`;
+                    html += '</div>';
+                }
+                
+                containerDiv.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error al cargar productos:', error);
+                loadingDiv.style.display = 'none';
+                containerDiv.innerHTML = '<div class="message error">❌ Error al cargar los productos. Intente recargar la página.</div>';
+            }
+        }
+        
+        async function eliminarVariante(id, nombre) {
+            if (!confirm(`¿Está seguro de eliminar "${nombre}"?`)) {
+                return;
+            }
+            
+            try {
+                await window.deleteDoc(window.doc(window.db, 'products', id));
+                alert('Producto eliminado correctamente');
+                cargarProductos();
+            } catch (error) {
+                console.error('Error al eliminar:', error);
+                alert('Error al eliminar el producto');
+            }
+        }
+        
+        async function eliminarProductoBase(dataStr) {
+            const data = JSON.parse(decodeURIComponent(dataStr));
+            if (!data?.id) {
+                alert('No se encontró el identificador del producto base.');
+                return;
+            }
+            
+            if (!confirm(`¿Eliminar el producto base "${data.name}" y todas sus variantes?`)) {
+                return;
+            }
+            
+            try {
+                // Eliminar variantes asociadas
+                const variantesSnapshot = await window.getDocs(
+                    window.query(
+                        window.collection(window.db, 'products'),
+                        window.where('baseProduct', '==', data.name)
+                    )
+                );
+                
+                for (const docSnap of variantesSnapshot.docs) {
+                    await window.deleteDoc(docSnap.ref);
+                }
+                
+                // Eliminar también variantes cuyo nombre comience con el producto cuando el campo baseProduct no exista
+                const prefix = `${data.name} - `;
+                const variantesFallback = await window.getDocs(
+                    window.query(
+                        window.collection(window.db, 'products'),
+                        window.where('name', '>=', prefix),
+                        window.where('name', '<=', `${prefix}\uf8ff`)
+                    )
+                );
+                for (const docSnap of variantesFallback.docs) {
+                    if (docSnap.id !== data.id) {
+                        await window.deleteDoc(docSnap.ref);
+                    }
+                }
+                
+                // Eliminar producto base
+                await window.deleteDoc(window.doc(window.db, 'products', data.id));
+                
+                alert('Producto base y variantes eliminados correctamente');
+                cargarProductos();
+            } catch (error) {
+                console.error('Error al eliminar producto base:', error);
+                alert('Error al eliminar el producto base.');
+            }
+        }
+        
+        function editarProductoBase(dataStr) {
+            const data = JSON.parse(decodeURIComponent(dataStr));
+            sessionStorage.setItem('editarProductoBase', JSON.stringify(data));
+            window.location.href = 'agregar-producto.html';
+        }
+        
+        function editarVariante(dataStr) {
+            const data = JSON.parse(decodeURIComponent(dataStr));
+            sessionStorage.setItem('editarVariante', JSON.stringify(data));
+            window.location.href = 'agregar-producto.html';
+        }
+        
+        function agregarVariante(baseName) {
+            // Redirigir a agregar producto y pre-llenar el nombre base
+            sessionStorage.setItem('productoBase', baseName);
+            window.location.href = 'agregar-producto.html';
+        }
+        
+        // Cargar productos al cargar la página
+        window.addEventListener('DOMContentLoaded', cargarProductos);
+    </script>
+</body>
+</html>
+

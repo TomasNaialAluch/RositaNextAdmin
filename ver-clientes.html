@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ver Clientes - Rosita Admin</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyCdilgyg87D9pDIM1Gvs-H5DqtfbTpC3ys",
+            authDomain: "rosita-b76eb.firebaseapp.com",
+            projectId: "rosita-b76eb",
+            storageBucket: "rosita-b76eb.appspot.com",
+            messagingSenderId: "778473943709",
+            appId: "1:778473943709:web:a44d114c61ab7456f99a74",
+            measurementId: "G-JHC9CKT0BS"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        window.db = db;
+        window.getDocs = getDocs;
+        window.collection = collection;
+        window.query = query;
+        window.orderBy = orderBy;
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="images/logo-sin-fondo.png" alt="Rosita" class="logo-grande" style="max-width: 100px;">
+            <h1>Clientes</h1>
+        </header>
+        
+        <nav>
+            <a href="index.html">🏠 Inicio</a>
+            <a href="agregar-producto.html">➕ Agregar Producto</a>
+            <a href="ver-pedidos.html">📦 Ver Pedidos</a>
+            <a href="ver-clientes.html">👥 Ver Clientes</a>
+            <a href="cargar-receta.html">📝 Cargar Receta</a>
+        </nav>
+        
+        <main>
+            <h2 class="page-title">Lista de Clientes</h2>
+            
+            <div id="loading" class="loading">Cargando clientes...</div>
+            <div id="clientes-container"></div>
+        </main>
+    </div>
+    
+    <script>
+        async function cargarClientes() {
+            const loadingDiv = document.getElementById('loading');
+            const containerDiv = document.getElementById('clientes-container');
+            
+            try {
+                const q = window.query(window.collection(window.db, 'clientes'), window.orderBy('nombre', 'asc'));
+                const querySnapshot = await window.getDocs(q);
+                
+                loadingDiv.style.display = 'none';
+                
+                if (querySnapshot.empty) {
+                    containerDiv.innerHTML = `
+                        <div class="empty-state">
+                            <img src="images/logo-sin-fondo.png" alt="Sin clientes">
+                            <h3>No hay clientes registrados</h3>
+                            <p>Los clientes aparecerán aquí cuando se registren en el sistema.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = '<div class="table-container"><table><thead><tr><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Dirección</th><th>Fecha Registro</th></tr></thead><tbody>';
+                
+                querySnapshot.forEach((doc) => {
+                    const cliente = doc.data();
+                    const fechaRegistro = cliente.fechaRegistro ? new Date(cliente.fechaRegistro.seconds * 1000).toLocaleDateString('es-AR') : 'N/A';
+                    
+                    html += `
+                        <tr>
+                            <td><strong>${cliente.nombre || 'N/A'}</strong></td>
+                            <td>${cliente.email || 'N/A'}</td>
+                            <td>${cliente.telefono || 'N/A'}</td>
+                            <td>${cliente.direccion || 'N/A'}</td>
+                            <td>${fechaRegistro}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table></div>';
+                containerDiv.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error al cargar clientes:', error);
+                loadingDiv.style.display = 'none';
+                containerDiv.innerHTML = '<div class="message error">❌ Error al cargar los clientes. Intente recargar la página.</div>';
+            }
+        }
+        
+        // Cargar clientes al cargar la página
+        window.addEventListener('DOMContentLoaded', cargarClientes);
+    </script>
+</body>
+</html>
+

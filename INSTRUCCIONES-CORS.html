@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instrucciones - Rosita Admin</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #B23A61;
+        }
+        .step {
+            background: #f9f9f9;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #B23A61;
+            border-radius: 5px;
+        }
+        code {
+            background: #e9e9e9;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚠️ Error de CORS - Solución</h1>
+        
+        <div class="warning">
+            <strong>Problema:</strong> Estás abriendo el archivo HTML directamente desde el explorador de archivos (file://), 
+            lo cual causa errores de CORS con Firebase Storage.
+        </div>
+        
+        <h2>Soluciones:</h2>
+        
+        <div class="step">
+            <h3>Opción 1: Usar Python (Recomendado - Más fácil)</h3>
+            <p>1. Abre la terminal/cmd en la carpeta del proyecto</p>
+            <p>2. Ejecuta:</p>
+            <code>python -m http.server 8000</code>
+            <p>3. Abre tu navegador en: <strong>http://localhost:8000/agregar-producto.html</strong></p>
+        </div>
+        
+        <div class="step">
+            <h3>Opción 2: Usar Node.js</h3>
+            <p>1. Abre la terminal/cmd en la carpeta del proyecto</p>
+            <p>2. Ejecuta:</p>
+            <code>npx http-server -p 8000</code>
+            <p>3. Abre tu navegador en: <strong>http://localhost:8000/agregar-producto.html</strong></p>
+        </div>
+        
+        <div class="step">
+            <h3>Opción 3: Usar Visual Studio Code</h3>
+            <p>1. Instala la extensión "Live Server" en VS Code</p>
+            <p>2. Haz clic derecho en <code>agregar-producto.html</code></p>
+            <p>3. Selecciona "Open with Live Server"</p>
+        </div>
+        
+        <div class="step">
+            <h3>Opción 4: Usar PHP</h3>
+            <p>1. Abre la terminal/cmd en la carpeta del proyecto</p>
+            <p>2. Ejecuta:</p>
+            <code>php -S localhost:8000</code>
+            <p>3. Abre tu navegador en: <strong>http://localhost:8000/agregar-producto.html</strong></p>
+        </div>
+        
+        <h2>¿Por qué es necesario?</h2>
+        <p>Firebase Storage requiere que las peticiones vengan de un origen HTTP válido (http:// o https://), 
+        no desde archivos locales (file://). Por eso necesitas un servidor web local.</p>
+        
+        <h2>Después de iniciar el servidor:</h2>
+        <p>Una vez que tengas el servidor corriendo, podrás subir imágenes sin problemas. 
+        El error de CORS desaparecerá porque ahora el origen será <code>http://localhost:8000</code> en lugar de <code>null</code>.</p>
+    </div>
+</body>
+</html>
+
