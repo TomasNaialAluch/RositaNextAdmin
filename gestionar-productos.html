@@ -147,6 +147,30 @@
         .add-variant-btn {
             margin-top: 15px;
         }
+
+        .filters-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .filters-section input,
+        .filters-section select {
+            padding: 8px 12px;
+            border: 1px solid var(--gris-medio);
+            border-radius: 6px;
+            min-width: 220px;
+            font-size: 0.95em;
+        }
+
+        .filters-section input:focus,
+        .filters-section select:focus {
+            outline: none;
+            border-color: var(--rosa-principal);
+            box-shadow: 0 0 0 2px rgba(178, 58, 97, 0.2);
+        }
     </style>
 </head>
 <body>
@@ -168,6 +192,18 @@
         
         <main>
             <h2 class="page-title">Productos y Variantes</h2>
+
+            <div class="filters-section">
+                <input type="text" id="searchProductos" placeholder="🔍 Buscar producto o variante..." oninput="filtrarProductos()">
+                <select id="categoryFilter" onchange="filtrarProductos()">
+                    <option value="">Todas las categorías</option>
+                    <option value="pollo">Pollo</option>
+                    <option value="vacuno">Vacuno</option>
+                    <option value="cerdo">Cerdo</option>
+                    <option value="embutidos">Embutidos</option>
+                    <option value="otros">Otros</option>
+                </select>
+            </div>
             
             <div id="loading" class="loading">Cargando productos...</div>
             <div id="productos-container"></div>
@@ -175,9 +211,16 @@
     </div>
     
     <script>
+        const loadingDiv = document.getElementById('loading');
+        const containerDiv = document.getElementById('productos-container');
+        const searchInput = document.getElementById('searchProductos');
+        const categoryFilter = document.getElementById('categoryFilter');
+
+        let productosAgrupadosData = [];
+
         async function cargarProductos() {
-            const loadingDiv = document.getElementById('loading');
-            const containerDiv = document.getElementById('productos-container');
+            loadingDiv.style.display = 'block';
+            containerDiv.innerHTML = '';
             
             try {
                 const q = window.query(window.collection(window.db, 'products'), window.orderBy('name', 'asc'));
@@ -226,109 +269,190 @@
                     }
                 });
                 
-                let html = '';
-                
-                for (const [baseName, grupo] of Object.entries(productosAgrupados)) {
+                productosAgrupadosData = Object.entries(productosAgrupados).map(([baseName, grupo]) => {
                     const baseDoc = grupo.base;
-                    const baseCategory = (baseDoc && (baseDoc.category || baseDoc.categoria)) || 'Sin categoría';
-                    const baseImage = baseDoc?.image || baseDoc?.image_url || grupo.variants[0]?.baseImage || '';
+                    const firstVariant = grupo.variants[0] || {};
+                    const baseCategory =
+                        (baseDoc && (baseDoc.category || baseDoc.categoria)) ||
+                        firstVariant.category ||
+                        firstVariant.categoria ||
+                        'Sin categoría';
+                    const baseImage =
+                        baseDoc?.image ||
+                        baseDoc?.image_url ||
+                        firstVariant.baseImage ||
+                        firstVariant.image ||
+                        '';
                     const baseId = baseDoc?.id || '';
-                    const baseData = {
-                        id: baseId,
-                        name: baseName,
+
+                    return {
+                        baseName,
                         category: baseCategory,
-                        image: baseImage
+                        baseImage,
+                        baseId,
+                        baseData: baseDoc
+                            ? {
+                                  id: baseDoc.id,
+                                  name: baseName,
+                                  category: baseCategory,
+                                  image: baseImage
+                              }
+                            : {
+                                  id: baseId,
+                                  name: baseName,
+                                  category: baseCategory,
+                                  image: baseImage
+                              },
+                        variants: grupo.variants
                     };
-                    const baseDataStr = encodeURIComponent(JSON.stringify(baseData));
-                    html += '<div class="product-group">';
-                    html += `
-                        <div class="product-base">
-                            <div style="display: flex; align-items: center; gap: 15px;">
-                                ${baseImage ? `<img src="${baseImage}" alt="${baseName}" class="product-base-img">` : ''}
-                                <div>
-                                    <div class="product-base-info">${baseName}</div>
-                                    <div class="product-base-category">${baseCategory}</div>
-                                </div>
-                            </div>
-                            <div class="product-base-actions">
-                                ${baseId ? `<button class="btn btn-small" onclick="editarProductoBase('${baseDataStr}')">Editar Base</button>` : ''}
-                                ${baseId ? `<button class="btn btn-small btn-secondary" onclick="eliminarProductoBase('${baseDataStr}')">Eliminar Base</button>` : ''}
-                            </div>
-                        </div>
-                    `;
-                    
-                    if (grupo.variants.length > 0) {
-                        html += '<div class="variants-list">';
-                        
-                        grupo.variants.forEach(variant => {
-                            const formatOptions = variant.formatOptions || [];
-                            const boneOptions = variant.boneOptions || [];
-                            const variantImage = variant.image || variant.image_url || variant.baseImage || baseImage || '';
-                            const variantData = {
-                                id: variant.id,
-                                baseId: baseId,
-                                baseName: baseName,
-                                baseImage: baseImage,
-                                category: baseCategory,
-                                name: variant.name,
-                                variant: variant.variant || variant.name.split(' - ')[1] || '',
-                                description: variant.description || '',
-                                price: variant.price || 0,
-                                sellBy: variant.sellBy || '',
-                                sale_format: variant.sale_format || '',
-                                minimumKg: variant.minimumKg || variant.minimum_kg || 0,
-                                stock: variant.stock || 0,
-                                inStock: !!variant.inStock,
-                                featured: !!variant.featured,
-                                formatOptions,
-                                boneOptions,
-                                image: variant.image || variant.image_url || '',
-                                created_at: variant.created_at || '',
-                                updated_at: variant.updated_at || ''
-                            };
-                            const variantDataStr = encodeURIComponent(JSON.stringify(variantData));
-                            
-                            html += `
-                                <div class="variant-card">
-                                    ${variantImage ? `<img src="${variantImage}" alt="${variant.variant || variant.name}" class="variant-img">` : ''}
-                                    <div class="variant-header">
-                                        <div class="variant-name">${variant.variant || variant.name.split(' - ')[1] || variant.name}</div>
-                                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                                            <button class="btn btn-small" onclick="editarVariante('${variantDataStr}')">Editar</button>
-                                            <button class="btn btn-small btn-secondary" onclick="eliminarVariante('${variant.id}', '${variant.name}')">Eliminar</button>
-                                        </div>
-                                    </div>
-                                    <div class="variant-info"><strong>Descripción:</strong> ${variant.description || 'Sin descripción'}</div>
-                                    <div class="variant-info"><strong>Precio:</strong> $${variant.price?.toFixed(2) || '0.00'}</div>
-                                    <div class="variant-info"><strong>Venta:</strong> ${variant.sale_format || variant.sellBy || 'N/A'}</div>
-                                    ${variant.minimumKg ? `<div class="variant-info"><strong>Peso:</strong> ${variant.minimumKg} kg</div>` : ''}
-                                    <div class="variant-info"><strong>Stock:</strong> ${variant.stock || 0}</div>
-                                    <div style="margin-top: 10px;">
-                                        ${variant.inStock ? '<span class="badge badge-success">En Stock</span>' : '<span class="badge badge-danger">Sin Stock</span>'}
-                                        ${variant.featured ? '<span class="badge badge-info">Destacado</span>' : ''}
-                                    </div>
-                                    ${formatOptions.length > 0 ? `<div style="margin-top: 10px;"><strong>Cortes:</strong> ${formatOptions.join(', ')}</div>` : ''}
-                                    ${boneOptions.length > 0 ? `<div style="margin-top: 5px;"><strong>Hueso:</strong> ${boneOptions.join(', ')}</div>` : ''}
-                                </div>
-                            `;
-                        });
-                        
-                        html += '</div>';
-                    } else {
-                        html += '<p style="color: var(--gris-medio); padding: 20px;">No hay variantes para este producto. <a href="agregar-producto.html">Agregar variante</a></p>';
-                    }
-                    
-                    html += `<button class="btn add-variant-btn" onclick="agregarVariante('${baseName}')">➕ Agregar Variante a "${baseName}"</button>`;
-                    html += '</div>';
-                }
-                
-                containerDiv.innerHTML = html;
+                });
+
+                filtrarProductos();
                 
             } catch (error) {
                 console.error('Error al cargar productos:', error);
                 loadingDiv.style.display = 'none';
                 containerDiv.innerHTML = '<div class="message error">❌ Error al cargar los productos. Intente recargar la página.</div>';
             }
+        }
+
+        function renderizarProductos(grupos) {
+            if (!grupos || grupos.length === 0) {
+                containerDiv.innerHTML = `
+                    <div class="empty-state">
+                        <img src="images/logo-sin-fondo.png" alt="Sin resultados">
+                        <h3>No se encontraron productos</h3>
+                        <p>Intenta cambiar los filtros o la búsqueda.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+
+            for (const grupo of grupos) {
+                const baseName = grupo.baseName;
+                const baseCategory = grupo.category || 'Sin categoría';
+                const baseImage = grupo.baseImage || '';
+                const baseId = grupo.baseId || '';
+                const baseData = grupo.baseData || {
+                    id: baseId,
+                    name: baseName,
+                    category: baseCategory,
+                    image: baseImage
+                };
+                const baseDataStr = encodeURIComponent(JSON.stringify(baseData));
+
+                html += '<div class="product-group">';
+                html += `
+                    <div class="product-base">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            ${baseImage ? `<img src="${baseImage}" alt="${baseName}" class="product-base-img">` : ''}
+                            <div>
+                                <div class="product-base-info">${baseName}</div>
+                                <div class="product-base-category">${baseCategory}</div>
+                            </div>
+                        </div>
+                        <div class="product-base-actions">
+                            ${baseData.id ? `<button class="btn btn-small" onclick="editarProductoBase('${baseDataStr}')">Editar Base</button>` : ''}
+                            ${baseData.id ? `<button class="btn btn-small btn-secondary" onclick="eliminarProductoBase('${baseDataStr}')">Eliminar Base</button>` : ''}
+                        </div>
+                    </div>
+                `;
+
+                if (grupo.variants.length > 0) {
+                    html += '<div class="variants-list">';
+
+                    grupo.variants.forEach(variant => {
+                        const formatOptions = variant.formatOptions || [];
+                        const boneOptions = variant.boneOptions || [];
+                        const variantImage = variant.image || variant.image_url || variant.baseImage || baseImage || '';
+                        const variantData = {
+                            id: variant.id,
+                            baseId: baseData.id || '',
+                            baseName: baseName,
+                            baseImage: baseImage,
+                            category: baseCategory,
+                            name: variant.name,
+                            variant: variant.variant || variant.name.split(' - ')[1] || '',
+                            description: variant.description || '',
+                            price: variant.price || 0,
+                            sellBy: variant.sellBy || '',
+                            sale_format: variant.sale_format || '',
+                            minimumKg: variant.minimumKg || variant.minimum_kg || 0,
+                            stock: variant.stock || 0,
+                            inStock: !!variant.inStock,
+                            featured: !!variant.featured,
+                            formatOptions,
+                            boneOptions,
+                            image: variant.image || variant.image_url || '',
+                            created_at: variant.created_at || '',
+                            updated_at: variant.updated_at || ''
+                        };
+                        const variantDataStr = encodeURIComponent(JSON.stringify(variantData));
+
+                        html += `
+                            <div class="variant-card">
+                                ${variantImage ? `<img src="${variantImage}" alt="${variant.variant || variant.name}" class="variant-img">` : ''}
+                                <div class="variant-header">
+                                    <div class="variant-name">${variant.variant || variant.name.split(' - ')[1] || variant.name}</div>
+                                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                        <button class="btn btn-small" onclick="editarVariante('${variantDataStr}')">Editar</button>
+                                        <button class="btn btn-small btn-secondary" onclick="eliminarVariante('${variant.id}', '${variant.name}')">Eliminar</button>
+                                    </div>
+                                </div>
+                                <div class="variant-info"><strong>Descripción:</strong> ${variant.description || 'Sin descripción'}</div>
+                                <div class="variant-info"><strong>Precio:</strong> $${variant.price?.toFixed(2) || '0.00'}</div>
+                                <div class="variant-info"><strong>Venta:</strong> ${variant.sale_format || variant.sellBy || 'N/A'}</div>
+                                ${variant.minimumKg ? `<div class="variant-info"><strong>Peso:</strong> ${variant.minimumKg} kg</div>` : ''}
+                                <div class="variant-info"><strong>Stock:</strong> ${variant.stock || 0}</div>
+                                <div style="margin-top: 10px;">
+                                    ${variant.inStock ? '<span class="badge badge-success">En Stock</span>' : '<span class="badge badge-danger">Sin Stock</span>'}
+                                    ${variant.featured ? '<span class="badge badge-info">Destacado</span>' : ''}
+                                </div>
+                                ${formatOptions.length > 0 ? `<div style="margin-top: 10px;"><strong>Cortes:</strong> ${formatOptions.join(', ')}</div>` : ''}
+                                ${boneOptions.length > 0 ? `<div style="margin-top: 5px;"><strong>Hueso:</strong> ${boneOptions.join(', ')}</div>` : ''}
+                            </div>
+                        `;
+                    });
+
+                    html += '</div>';
+                } else {
+                    html += '<p style="color: var(--gris-medio); padding: 20px;">No hay variantes para este producto. <a href="agregar-producto.html">Agregar variante</a></p>';
+                }
+
+                html += `<button class="btn add-variant-btn" onclick="agregarVariante('${baseName.replace(/'/g, "\\'")}')">➕ Agregar Variante a "${baseName}"</button>`;
+                html += '</div>';
+            }
+
+            containerDiv.innerHTML = html;
+        }
+
+        function filtrarProductos() {
+            if (!productosAgrupadosData || productosAgrupadosData.length === 0) {
+                containerDiv.innerHTML = '';
+                return;
+            }
+
+            const searchTerm = (searchInput?.value || '').toLowerCase().trim();
+            const categoryValue = (categoryFilter?.value || '').toLowerCase();
+
+            const gruposFiltrados = productosAgrupadosData.filter(grupo => {
+                const categoriaGrupo = (grupo.category || '').toLowerCase();
+                const coincideCategoria = !categoryValue || categoriaGrupo === categoryValue;
+
+                const coincideBusqueda =
+                    !searchTerm ||
+                    grupo.baseName.toLowerCase().includes(searchTerm) ||
+                    grupo.variants.some(variant => {
+                        const nombreVariante = (variant.variant || variant.name || '').toLowerCase();
+                        return nombreVariante.includes(searchTerm);
+                    });
+
+                return coincideCategoria && coincideBusqueda;
+            });
+
+            renderizarProductos(gruposFiltrados);
         }
         
         async function eliminarVariante(id, nombre) {
