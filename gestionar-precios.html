@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Precios - Rosita Admin</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { db } from './firebase-config.js';
+        import { collection, getDocs, query, orderBy, updateDoc, doc, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        window.db = db;
+        window.getDocs = getDocs;
+        window.collection = collection;
+        window.query = query;
+        window.orderBy = orderBy;
+        window.updateDoc = updateDoc;
+        window.doc = doc;
+        window.where = where;
+    </script>
+    <style>
+        .tools-section {
+            background: var(--gris-claro);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .tool-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .tool-group label {
+            font-weight: bold;
+            color: var(--rosa-principal);
+            font-size: 0.9em;
+        }
+        
+        .tool-group input {
+            padding: 8px;
+            border: 1px solid var(--gris-medio);
+            border-radius: 5px;
+        }
+        
+        .tool-group button {
+            padding: 8px 15px;
+            font-size: 0.9em;
+        }
+        
+        .filters-section {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .filters-section input,
+        .filters-section select {
+            padding: 8px;
+            border: 1px solid var(--gris-medio);
+            border-radius: 5px;
+            min-width: 200px;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            background: var(--blanco);
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1000px;
+        }
+        
+        thead {
+            background: var(--rosa-principal);
+            color: var(--blanco);
+        }
+        
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            background: var(--rosa-principal);
+        }
+        
+        td {
+            padding: 10px;
+            border-bottom: 1px solid var(--gris-claro);
+        }
+        
+        tr:hover {
+            background: var(--gris-claro);
+        }
+        
+        .price-input {
+            width: 100px;
+            padding: 5px;
+            border: 2px solid var(--rosa-claro);
+            border-radius: 5px;
+            text-align: right;
+        }
+        
+        .price-input:focus {
+            border-color: var(--rosa-principal);
+            outline: none;
+        }
+        
+        .price-input.changed {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+        
+        .save-btn {
+            padding: 4px 10px;
+            font-size: 0.8em;
+            margin-left: 5px;
+        }
+        
+        .category-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            background: var(--rosa-claro);
+            color: var(--rosa-oscuro);
+        }
+        
+        .stock-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+        
+        .stock-badge.in-stock {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .stock-badge.out-of-stock {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .bulk-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .checkbox-cell {
+            text-align: center;
+            width: 40px;
+        }
+        
+        .checkbox-cell input {
+            cursor: pointer;
+        }
+        
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: var(--gris-claro);
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-item strong {
+            display: block;
+            font-size: 1.5em;
+            color: var(--rosa-principal);
+        }
+        
+        .stat-item span {
+            font-size: 0.9em;
+            color: var(--gris-medio);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="images/logo-sin-fondo.png" alt="Rosita" class="logo-grande" style="max-width: 100px;">
+            <h1>Gestionar Precios</h1>
+        </header>
+        
+        <nav>
+            <a href="index.html">🏠 Inicio</a>
+            <a href="agregar-producto.html">➕ Agregar Producto</a>
+            <a href="gestionar-productos.html">📋 Gestionar Productos</a>
+            <a href="gestionar-precios.html">💰 Gestionar Precios</a>
+            <a href="ver-pedidos.html">📦 Ver Pedidos</a>
+            <a href="ver-clientes.html">👥 Ver Clientes</a>
+            <a href="cargar-receta.html">📝 Cargar Receta</a>
+        </nav>
+        
+        <main>
+            <h2 class="page-title">Tabla de Precios</h2>
+            
+            <div id="message"></div>
+            
+            <!-- Estadísticas -->
+            <div class="stats-bar" id="statsBar" style="display: none;">
+                <div class="stat-item">
+                    <strong id="totalProducts">0</strong>
+                    <span>Productos</span>
+                </div>
+                <div class="stat-item">
+                    <strong id="avgPrice">$0</strong>
+                    <span>Precio Promedio</span>
+                </div>
+                <div class="stat-item">
+                    <strong id="totalValue">$0</strong>
+                    <span>Valor Total</span>
+                </div>
+                <div class="stat-item">
+                    <strong id="changedCount">0</strong>
+                    <span>Precios Modificados</span>
+                </div>
+            </div>
+            
+            <!-- Herramientas de Ajuste Masivo -->
+            <div class="tools-section">
+                <div class="tool-group">
+                    <label>Aumentar Precios (Cantidad Fija)</label>
+                    <input type="number" id="fixedAmount" step="0.01" placeholder="Ej: 100">
+                    <button class="btn" onclick="aplicarAumentoFijo()">Aplicar a Todos</button>
+                </div>
+                
+                <div class="tool-group">
+                    <label>Aumentar Precios (Porcentaje)</label>
+                    <input type="number" id="percentageAmount" step="0.1" placeholder="Ej: 10">
+                    <button class="btn" onclick="aplicarAumentoPorcentaje()">Aplicar a Todos</button>
+                </div>
+                
+                <div class="tool-group">
+                    <label>Reducir Precios (Cantidad Fija)</label>
+                    <input type="number" id="reduceFixedAmount" step="0.01" placeholder="Ej: 50">
+                    <button class="btn btn-secondary" onclick="aplicarReduccionFija()">Aplicar a Todos</button>
+                </div>
+                
+                <div class="tool-group">
+                    <label>Reducir Precios (Porcentaje)</label>
+                    <input type="number" id="reducePercentageAmount" step="0.1" placeholder="Ej: 5">
+                    <button class="btn btn-secondary" onclick="aplicarReduccionPorcentaje()">Aplicar a Todos</button>
+                </div>
+            </div>
+            
+            <!-- Filtros y Búsqueda -->
+            <div class="filters-section">
+                <input type="text" id="searchInput" placeholder="🔍 Buscar producto..." oninput="filtrarTabla()">
+                <select id="categoryFilter" onchange="filtrarTabla()">
+                    <option value="">Todas las categorías</option>
+                    <option value="pollo">Pollo</option>
+                    <option value="vacuno">Vacuno</option>
+                    <option value="cerdo">Cerdo</option>
+                    <option value="embutidos">Embutidos</option>
+                    <option value="otros">Otros</option>
+                </select>
+                <select id="stockFilter" onchange="filtrarTabla()">
+                    <option value="">Todos los estados</option>
+                    <option value="inStock">En Stock</option>
+                    <option value="outOfStock">Sin Stock</option>
+                </select>
+                <button class="btn" onclick="guardarTodosLosCambios()">💾 Guardar Todos los Cambios</button>
+                <button class="btn btn-secondary" onclick="exportarCSV()">📥 Exportar CSV</button>
+            </div>
+            
+            <!-- Acciones Masivas -->
+            <div class="bulk-actions">
+                <button class="btn btn-small" onclick="seleccionarTodos()">Seleccionar Todos</button>
+                <button class="btn btn-small" onclick="deseleccionarTodos()">Deseleccionar Todos</button>
+                <button class="btn btn-small" onclick="aplicarAumentoFijoSeleccionados()">Aumentar Seleccionados (Fijo)</button>
+                <button class="btn btn-small" onclick="aplicarAumentoPorcentajeSeleccionados()">Aumentar Seleccionados (%)</button>
+            </div>
+            
+            <div id="loading" class="loading">Cargando productos...</div>
+            <div class="table-container">
+                <table id="preciosTable">
+                    <thead>
+                        <tr>
+                            <th class="checkbox-cell">
+                                <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
+                            </th>
+                            <th>Producto Base</th>
+                            <th>Variante/Marca</th>
+                            <th>Categoría</th>
+                            <th>Precio Actual</th>
+                            <th>Nuevo Precio</th>
+                            <th>Formato Venta</th>
+                            <th>Stock</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Se llenará dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        let productosData = [];
+        let preciosModificados = {};
+        
+        async function cargarProductos() {
+            const loadingDiv = document.getElementById('loading');
+            const tableBody = document.getElementById('tableBody');
+            
+            try {
+                const q = window.query(window.collection(window.db, 'products'), window.orderBy('name', 'asc'));
+                const querySnapshot = await window.getDocs(q);
+                
+                loadingDiv.style.display = 'none';
+                productosData = [];
+                
+                if (querySnapshot.empty) {
+                    tableBody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 40px;">No hay productos registrados</td></tr>';
+                    return;
+                }
+                
+                querySnapshot.forEach((docSnap) => {
+                    const producto = docSnap.data();
+                    // Solo mostrar productos que tienen precio (variantes)
+                    if (producto.price !== undefined && producto.price !== null) {
+                        productosData.push({
+                            id: docSnap.id,
+                            name: producto.name || '',
+                            baseProduct: producto.baseProduct || producto.name.split(' - ')[0] || producto.name,
+                            variant: producto.variant || producto.name.split(' - ')[1] || '',
+                            category: producto.category || producto.categoria || 'Sin categoría',
+                            price: producto.price || 0,
+                            sellBy: producto.sellBy || '',
+                            sale_format: producto.sale_format || '',
+                            stock: producto.stock || 0,
+                            inStock: producto.inStock !== false,
+                            ...producto
+                        });
+                    }
+                });
+                
+                renderizarTabla();
+                actualizarEstadisticas();
+                
+            } catch (error) {
+                console.error('Error al cargar productos:', error);
+                loadingDiv.style.display = 'none';
+                tableBody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 40px; color: red;">Error al cargar los productos</td></tr>';
+            }
+        }
+        
+        function renderizarTabla() {
+            const tableBody = document.getElementById('tableBody');
+            let html = '';
+            
+            productosData.forEach((producto, index) => {
+                const precioOriginal = producto.price || 0;
+                const precioModificado = preciosModificados[producto.id] !== undefined ? preciosModificados[producto.id] : precioOriginal;
+                const haCambiado = precioModificado !== precioOriginal;
+                
+                html += `
+                    <tr data-index="${index}" data-category="${producto.category.toLowerCase()}" data-stock="${producto.inStock ? 'inStock' : 'outOfStock'}">
+                        <td class="checkbox-cell">
+                            <input type="checkbox" class="row-checkbox" data-id="${producto.id}">
+                        </td>
+                        <td><strong>${producto.baseProduct}</strong></td>
+                        <td>${producto.variant || '-'}</td>
+                        <td><span class="category-badge">${producto.category}</span></td>
+                        <td>$${precioOriginal.toFixed(2)}</td>
+                        <td>
+                            <input type="number" 
+                                   class="price-input ${haCambiado ? 'changed' : ''}" 
+                                   value="${precioModificado.toFixed(2)}" 
+                                   step="0.01" 
+                                   min="0"
+                                   data-id="${producto.id}"
+                                   data-original="${precioOriginal}"
+                                   onchange="marcarCambio('${producto.id}', this.value)">
+                        </td>
+                        <td>${producto.sale_format || producto.sellBy || '-'}</td>
+                        <td>${producto.stock || 0}</td>
+                        <td>
+                            <span class="stock-badge ${producto.inStock ? 'in-stock' : 'out-of-stock'}">
+                                ${producto.inStock ? 'En Stock' : 'Sin Stock'}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn save-btn" onclick="guardarPrecio('${producto.id}')" ${!haCambiado ? 'disabled style="opacity: 0.5;"' : ''}>
+                                Guardar
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tableBody.innerHTML = html || '<tr><td colspan="10" style="text-align: center; padding: 40px;">No hay productos con precios</td></tr>';
+        }
+        
+        function marcarCambio(productId, nuevoPrecio) {
+            const precio = parseFloat(nuevoPrecio);
+            if (isNaN(precio) || precio < 0) {
+                mostrarMensaje('Precio inválido', 'error');
+                return;
+            }
+            
+            preciosModificados[productId] = precio;
+            const row = document.querySelector(`tr[data-index] input[data-id="${productId}"]`)?.closest('tr');
+            if (row) {
+                const input = row.querySelector('.price-input');
+                const btn = row.querySelector('.save-btn');
+                const precioOriginal = parseFloat(input.dataset.original);
+                
+                if (precio !== precioOriginal) {
+                    input.classList.add('changed');
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                } else {
+                    input.classList.remove('changed');
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    delete preciosModificados[productId];
+                }
+            }
+            actualizarEstadisticas();
+        }
+        
+        async function guardarPrecio(productId) {
+            const nuevoPrecio = preciosModificados[productId];
+            if (nuevoPrecio === undefined) {
+                mostrarMensaje('No hay cambios para guardar', 'error');
+                return;
+            }
+            
+            try {
+                await window.updateDoc(window.doc(window.db, 'products', productId), {
+                    price: nuevoPrecio,
+                    updated_at: new Date().toISOString()
+                });
+                
+                // Actualizar el precio original en los datos
+                const producto = productosData.find(p => p.id === productId);
+                if (producto) {
+                    producto.price = nuevoPrecio;
+                }
+                
+                delete preciosModificados[productId];
+                renderizarTabla();
+                actualizarEstadisticas();
+                mostrarMensaje('Precio guardado correctamente', 'success');
+                
+            } catch (error) {
+                console.error('Error al guardar precio:', error);
+                mostrarMensaje('Error al guardar el precio', 'error');
+            }
+        }
+        
+        async function guardarTodosLosCambios() {
+            const cambios = Object.keys(preciosModificados);
+            if (cambios.length === 0) {
+                mostrarMensaje('No hay cambios para guardar', 'error');
+                return;
+            }
+            
+            if (!confirm(`¿Guardar ${cambios.length} cambio(s) de precio?`)) {
+                return;
+            }
+            
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = '<div class="message">Guardando cambios...</div>';
+            
+            try {
+                const updates = cambios.map(productId => {
+                    const nuevoPrecio = preciosModificados[productId];
+                    const producto = productosData.find(p => p.id === productId);
+                    if (producto) {
+                        producto.price = nuevoPrecio;
+                    }
+                    return window.updateDoc(window.doc(window.db, 'products', productId), {
+                        price: nuevoPrecio,
+                        updated_at: new Date().toISOString()
+                    });
+                });
+                
+                await Promise.all(updates);
+                
+                preciosModificados = {};
+                renderizarTabla();
+                actualizarEstadisticas();
+                mostrarMensaje(`${cambios.length} precio(s) guardado(s) correctamente`, 'success');
+                
+            } catch (error) {
+                console.error('Error al guardar cambios:', error);
+                mostrarMensaje('Error al guardar algunos cambios', 'error');
+            }
+        }
+        
+        function aplicarAumentoFijo() {
+            const cantidad = parseFloat(document.getElementById('fixedAmount').value);
+            if (isNaN(cantidad) || cantidad <= 0) {
+                mostrarMensaje('Ingresa una cantidad válida', 'error');
+                return;
+            }
+            
+            if (!confirm(`¿Aumentar todos los precios en $${cantidad.toFixed(2)}?`)) {
+                return;
+            }
+            
+            productosData.forEach(producto => {
+                const nuevoPrecio = (producto.price || 0) + cantidad;
+                preciosModificados[producto.id] = nuevoPrecio;
+            });
+            
+            document.getElementById('fixedAmount').value = '';
+            renderizarTabla();
+            actualizarEstadisticas();
+            mostrarMensaje(`Precios aumentados en $${cantidad.toFixed(2)}. Guarda los cambios para aplicar.`, 'success');
+        }
+        
+        function aplicarAumentoPorcentaje() {
+            const porcentaje = parseFloat(document.getElementById('percentageAmount').value);
+            if (isNaN(porcentaje) || porcentaje <= 0) {
+                mostrarMensaje('Ingresa un porcentaje válido', 'error');
+                return;
+            }
+            
+            if (!confirm(`¿Aumentar todos los precios en ${porcentaje}%?`)) {
+                return;
+            }
+            
+            productosData.forEach(producto => {
+                const precioActual = producto.price || 0;
+                const nuevoPrecio = precioActual * (1 + porcentaje / 100);
+                preciosModificados[producto.id] = nuevoPrecio;
+            });
+            
+            document.getElementById('percentageAmount').value = '';
+            renderizarTabla();
+            actualizarEstadisticas();
+            mostrarMensaje(`Precios aumentados en ${porcentaje}%. Guarda los cambios para aplicar.`, 'success');
+        }
+        
+        function aplicarReduccionFija() {
+            const cantidad = parseFloat(document.getElementById('reduceFixedAmount').value);
+            if (isNaN(cantidad) || cantidad <= 0) {
+                mostrarMensaje('Ingresa una cantidad válida', 'error');
+                return;
+            }
+            
+            if (!confirm(`¿Reducir todos los precios en $${cantidad.toFixed(2)}?`)) {
+                return;
+            }
+            
+            productosData.forEach(producto => {
+                const nuevoPrecio = Math.max(0, (producto.price || 0) - cantidad);
+                preciosModificados[producto.id] = nuevoPrecio;
+            });
+            
+            document.getElementById('reduceFixedAmount').value = '';
+            renderizarTabla();
+            actualizarEstadisticas();
+            mostrarMensaje(`Precios reducidos en $${cantidad.toFixed(2)}. Guarda los cambios para aplicar.`, 'success');
+        }
+        
+        function aplicarReduccionPorcentaje() {
+            const porcentaje = parseFloat(document.getElementById('reducePercentageAmount').value);
+            if (isNaN(porcentaje) || porcentaje <= 0 || porcentaje >= 100) {
+                mostrarMensaje('Ingresa un porcentaje válido (0-100)', 'error');
+                return;
+            }
+            
+            if (!confirm(`¿Reducir todos los precios en ${porcentaje}%?`)) {
+                return;
+            }
+            
+            productosData.forEach(producto => {
+                const precioActual = producto.price || 0;
+                const nuevoPrecio = precioActual * (1 - porcentaje / 100);
+                preciosModificados[producto.id] = nuevoPrecio;
+            });
+            
+            document.getElementById('reducePercentageAmount').value = '';
+            renderizarTabla();
+            actualizarEstadisticas();
+            mostrarMensaje(`Precios reducidos en ${porcentaje}%. Guarda los cambios para aplicar.`, 'success');
+        }
+        
+        function aplicarAumentoFijoSeleccionados() {
+            const seleccionados = obtenerSeleccionados();
+            if (seleccionados.length === 0) {
+                mostrarMensaje('Selecciona al menos un producto', 'error');
+                return;
+            }
+            
+            const cantidad = parseFloat(document.getElementById('fixedAmount').value);
+            if (isNaN(cantidad) || cantidad <= 0) {
+                mostrarMensaje('Ingresa una cantidad válida en el campo "Aumentar Precios (Cantidad Fija)"', 'error');
+                return;
+            }
+            
+            seleccionados.forEach(productId => {
+                const producto = productosData.find(p => p.id === productId);
+                if (producto) {
+                    const nuevoPrecio = (producto.price || 0) + cantidad;
+                    preciosModificados[productId] = nuevoPrecio;
+                }
+            });
+            
+            renderizarTabla();
+            actualizarEstadisticas();
+            mostrarMensaje(`${seleccionados.length} producto(s) actualizado(s)`, 'success');
+        }
+        
+        function aplicarAumentoPorcentajeSeleccionados() {
+            const seleccionados = obtenerSeleccionados();
+            if (seleccionados.length === 0) {
+                mostrarMensaje('Selecciona al menos un producto', 'error');
+                return;
+            }
+            
+            const porcentaje = parseFloat(document.getElementById('percentageAmount').value);
+            if (isNaN(porcentaje) || porcentaje <= 0) {
+                mostrarMensaje('Ingresa un porcentaje válido en el campo "Aumentar Precios (Porcentaje)"', 'error');
+                return;
+            }
+            
+            seleccionados.forEach(productId => {
+                const producto = productosData.find(p => p.id === productId);
+                if (producto) {
+                    const precioActual = producto.price || 0;
+                    const nuevoPrecio = precioActual * (1 + porcentaje / 100);
+                    preciosModificados[productId] = nuevoPrecio;
+                }
+            });
+            
+            renderizarTabla();
+            actualizarEstadisticas();
+            mostrarMensaje(`${seleccionados.length} producto(s) actualizado(s)`, 'success');
+        }
+        
+        function obtenerSeleccionados() {
+            const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+            return Array.from(checkboxes).map(cb => cb.dataset.id);
+        }
+        
+        function seleccionarTodos() {
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = true);
+            document.getElementById('selectAllCheckbox').checked = true;
+        }
+        
+        function deseleccionarTodos() {
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+            document.getElementById('selectAllCheckbox').checked = false;
+        }
+        
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAllCheckbox').checked;
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = selectAll);
+        }
+        
+        function filtrarTabla() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value.toLowerCase();
+            const stockFilter = document.getElementById('stockFilter').value;
+            
+            const rows = document.querySelectorAll('#tableBody tr[data-index]');
+            rows.forEach(row => {
+                const baseProduct = row.cells[1].textContent.toLowerCase();
+                const variant = row.cells[2].textContent.toLowerCase();
+                const category = row.dataset.category;
+                const stock = row.dataset.stock;
+                
+                const matchSearch = !searchTerm || baseProduct.includes(searchTerm) || variant.includes(searchTerm);
+                const matchCategory = !categoryFilter || category === categoryFilter;
+                const matchStock = !stockFilter || stock === stockFilter;
+                
+                row.style.display = (matchSearch && matchCategory && matchStock) ? '' : 'none';
+            });
+        }
+        
+        function actualizarEstadisticas() {
+            const visibleRows = Array.from(document.querySelectorAll('#tableBody tr[data-index]')).filter(r => r.style.display !== 'none');
+            const total = visibleRows.length;
+            
+            if (total === 0) {
+                document.getElementById('statsBar').style.display = 'none';
+                return;
+            }
+            
+            let sumaPrecios = 0;
+            visibleRows.forEach(row => {
+                const precio = parseFloat(row.querySelector('.price-input').value) || 0;
+                sumaPrecios += precio;
+            });
+            
+            const promedio = total > 0 ? sumaPrecios / total : 0;
+            const cambios = Object.keys(preciosModificados).length;
+            
+            document.getElementById('totalProducts').textContent = total;
+            document.getElementById('avgPrice').textContent = `$${promedio.toFixed(2)}`;
+            document.getElementById('totalValue').textContent = `$${sumaPrecios.toFixed(2)}`;
+            document.getElementById('changedCount').textContent = cambios;
+            document.getElementById('statsBar').style.display = 'flex';
+        }
+        
+        function exportarCSV() {
+            const headers = ['Producto Base', 'Variante', 'Categoría', 'Precio', 'Formato Venta', 'Stock', 'Estado'];
+            const rows = productosData.map(p => [
+                p.baseProduct,
+                p.variant || '',
+                p.category,
+                p.price.toFixed(2),
+                p.sale_format || p.sellBy || '',
+                p.stock || 0,
+                p.inStock ? 'En Stock' : 'Sin Stock'
+            ]);
+            
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `precios_rosita_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            mostrarMensaje('CSV exportado correctamente', 'success');
+        }
+        
+        function mostrarMensaje(texto, tipo) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="message ${tipo}">${texto}</div>`;
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 3000);
+        }
+        
+        // Cargar productos al iniciar
+        window.addEventListener('DOMContentLoaded', cargarProductos);
+    </script>
+</body>
+</html>
+

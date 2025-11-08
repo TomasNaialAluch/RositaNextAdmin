@@ -1,10 +1,9 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAnalytics, isSupported as isAnalyticsSupported } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getStorage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCdilgyg87D9pDIM1Gvs-H5DqtfbTpC3ys",
   authDomain: "rosita-b76eb.firebaseapp.com",
@@ -15,12 +14,23 @@ const firebaseConfig = {
   measurementId: "G-JHC9CKT0BS"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+
+const analyticsPromise = isAnalyticsSupported()
+  .then((supported) => (supported ? getAnalytics(app) : null))
+  .catch((error) => {
+    console.warn("Firebase Analytics no está disponible en este entorno.", error);
+    return null;
+  });
+
 const db = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app);
 
-// Export for use in other files
-export { db, auth, analytics };
+window.firebaseApp = app;
+window.firebaseAnalyticsPromise = analyticsPromise;
+window.firebaseDb = db;
+window.firebaseAuth = auth;
+window.firebaseStorage = storage;
 
+export { app, analyticsPromise, db, auth, storage };

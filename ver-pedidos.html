@@ -7,22 +7,9 @@
     <link rel="stylesheet" href="styles.css">
     <!-- Firebase SDK -->
     <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore, collection, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyCdilgyg87D9pDIM1Gvs-H5DqtfbTpC3ys",
-            authDomain: "rosita-b76eb.firebaseapp.com",
-            projectId: "rosita-b76eb",
-            storageBucket: "rosita-b76eb.appspot.com",
-            messagingSenderId: "778473943709",
-            appId: "1:778473943709:web:a44d114c61ab7456f99a74",
-            measurementId: "G-JHC9CKT0BS"
-        };
-        
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        
+        import { db } from './firebase-config.js';
+        import { collection, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
         window.db = db;
         window.getDocs = getDocs;
         window.collection = collection;
@@ -40,6 +27,8 @@
         <nav>
             <a href="index.html">🏠 Inicio</a>
             <a href="agregar-producto.html">➕ Agregar Producto</a>
+            <a href="gestionar-productos.html">📋 Gestionar Productos</a>
+            <a href="gestionar-precios.html">💰 Gestionar Precios</a>
             <a href="ver-pedidos.html">📦 Ver Pedidos</a>
             <a href="ver-clientes.html">👥 Ver Clientes</a>
             <a href="cargar-receta.html">📝 Cargar Receta</a>
