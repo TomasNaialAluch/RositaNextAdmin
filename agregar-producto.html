@@ -10,7 +10,7 @@
         import { db, storage } from './firebase-config.js';
         import { collection, addDoc, getDocs, getDoc, query, where, updateDoc, doc, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
-
+        
         window.db = db;
         window.addDoc = addDoc;
         window.collection = collection;
@@ -209,22 +209,22 @@
             <div class="tabs-container">
                 <button class="tab active" onclick="mostrarTab('productos')">📋 Seleccionar Producto Existente</button>
                 <button class="tab" onclick="mostrarTab('nuevo')">➕ Crear Nuevo Producto</button>
-            </div>
-            
+                    </div>
+                    
             <!-- Tab: Seleccionar Producto Existente -->
             <div id="tabProductos" class="tab-content active">
                 <div class="filters-section">
                     <input type="text" id="searchProductos" placeholder="🔍 Buscar producto..." oninput="filtrarProductos()">
                     <select id="categoryFilter" onchange="filtrarProductos()">
                         <option value="">Todas las categorías</option>
-                        <option value="pollo">Pollo</option>
-                        <option value="vacuno">Vacuno</option>
-                        <option value="cerdo">Cerdo</option>
-                        <option value="embutidos">Embutidos</option>
-                        <option value="otros">Otros</option>
-                    </select>
-                </div>
-                
+                            <option value="pollo">Pollo</option>
+                            <option value="vacuno">Vacuno</option>
+                            <option value="cerdo">Cerdo</option>
+                            <option value="embutidos">Embutidos</option>
+                            <option value="otros">Otros</option>
+                        </select>
+                    </div>
+                    
                 <div id="loading" class="loading">Cargando productos...</div>
                 <div id="productosContainer" class="productos-grid"></div>
                 
@@ -237,127 +237,127 @@
                     
                     <div class="form-container">
                         <h3 class="section-title">➕ Agregar Nueva Variante</h3>
-                        <form id="varianteForm">
-                            <div class="form-group">
-                                <label for="marcaNombre">Nombre de la Marca/Variante *</label>
-                                <input type="text" id="marcaNombre" name="marcaNombre" placeholder="Ej: Tresnal, Fresco, Premium" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="imagenVariante">Imagen de la variante *</label>
+                <form id="varianteForm">
+                    <div class="form-group">
+                        <label for="marcaNombre">Nombre de la Marca/Variante *</label>
+                        <input type="text" id="marcaNombre" name="marcaNombre" placeholder="Ej: Tresnal, Fresco, Premium" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="imagenVariante">Imagen de la variante *</label>
                                 <input type="file" id="imagenVariante" name="imagenVariante" accept="image/*">
-                                <small>Sube la foto específica de esta marca/presentación.</small>
-                            </div>
-                            
-                            <div class="image-preview" id="varianteImagePreview" style="display: none;">
-                                <p>Imagen actual de la variante:</p>
-                                <img id="varianteImagePreviewImg" src="" alt="Imagen de la variante">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="descripcion">Descripción de la Variante *</label>
-                                <textarea id="descripcion" name="descripcion" rows="3" placeholder="Ej: Viene envasado al vacío, se vende por unidad" required></textarea>
-                            </div>
-                            
+                        <small>Sube la foto específica de esta marca/presentación.</small>
+                    </div>
+                    
+                    <div class="image-preview" id="varianteImagePreview" style="display: none;">
+                        <p>Imagen actual de la variante:</p>
+                        <img id="varianteImagePreviewImg" src="" alt="Imagen de la variante">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="descripcion">Descripción de la Variante *</label>
+                        <textarea id="descripcion" name="descripcion" rows="3" placeholder="Ej: Viene envasado al vacío, se vende por unidad" required></textarea>
+                    </div>
+                    
                             <div class="form-two-columns">
-                                <div class="form-group">
-                                    <label for="precio">Precio ($) *</label>
-                                    <input type="number" id="precio" name="precio" step="0.01" min="0" required>
+                    <div class="form-group">
+                        <label for="precio">Precio ($) *</label>
+                        <input type="number" id="precio" name="precio" step="0.01" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="sellBy">Formato de Venta *</label>
+                        <select id="sellBy" name="sellBy" required onchange="togglePesoField()">
+                            <option value="">Seleccione formato</option>
+                            <option value="unidad">Por Unidad</option>
+                            <option value="kg">Por Kilogramo</option>
+                        </select>
                                 </div>
-                                
-                                <div class="form-group">
-                                    <label for="sellBy">Formato de Venta *</label>
-                                    <select id="sellBy" name="sellBy" required onchange="togglePesoField()">
-                                        <option value="">Seleccione formato</option>
-                                        <option value="unidad">Por Unidad</option>
-                                        <option value="kg">Por Kilogramo</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="form-group" id="pesoGroup" style="display: none;">
-                                <label for="peso">Peso (kg)</label>
-                                <input type="number" id="peso" name="peso" step="0.1" min="0" placeholder="Ej: 5">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="minimumKg">Mínimo de Compra (kg)</label>
-                                <input type="number" id="minimumKg" name="minimumKg" step="0.1" min="0" value="0">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>Opciones de Corte/Entrega</label>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
-                                    <label style="display: flex; align-items: center; cursor: pointer;">
-                                        <input type="checkbox" name="formatOptions" value="entero" style="margin-right: 8px; width: auto;">
-                                        Entero
-                                    </label>
-                                    <label style="display: flex; align-items: center; cursor: pointer;">
-                                        <input type="checkbox" name="formatOptions" value="bifes-1-dedo" style="margin-right: 8px; width: auto;">
-                                        Bifes a 1 dedo
-                                    </label>
-                                    <label style="display: flex; align-items: center; cursor: pointer;">
-                                        <input type="checkbox" name="formatOptions" value="bifes-2-dedos" style="margin-right: 8px; width: auto;">
-                                        Bifes a 2 dedos
-                                    </label>
-                                    <label style="display: flex; align-items: center; cursor: pointer;">
-                                        <input type="checkbox" name="formatOptions" value="bifes-3-dedos" style="margin-right: 8px; width: auto;">
-                                        Bifes a 3 dedos
-                                    </label>
-                                    <label style="display: flex; align-items: center; cursor: pointer;">
-                                        <input type="checkbox" name="formatOptions" value="banderita" style="margin-right: 8px; width: auto;">
-                                        Banderita
-                                    </label>
-                                    <label style="display: flex; align-items: center; cursor: pointer;">
-                                        <input type="checkbox" name="formatOptions" value="cortado-3-dedos" style="margin-right: 8px; width: auto;">
-                                        Cortado a 3 dedos
-                                    </label>
-                                    <label style="display: flex; align-items: center; cursor: pointer;">
-                                        <input type="checkbox" name="formatOptions" value="cortado-5-dedos" style="margin-right: 8px; width: auto;">
-                                        Cortado a 5 dedos
-                                    </label>
-                                    <label style="display: flex; align-items: center; cursor: pointer;">
-                                        <input type="checkbox" name="formatOptions" value="picado" style="margin-right: 8px; width: auto;">
-                                        Picado
-                                    </label>
-                                    <label style="display: flex; align-items: center; cursor: pointer;">
-                                        <input type="checkbox" name="formatOptions" value="milanesas" style="margin-right: 8px; width: auto;">
-                                        Milanesas
-                                    </label>
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>Opciones de Hueso</label>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
-                                    <label style="display: flex; align-items: center; cursor: pointer;">
-                                        <input type="checkbox" name="boneOptions" value="con-hueso" style="margin-right: 8px; width: auto;">
-                                        Con Hueso
-                                    </label>
-                                    <label style="display: flex; align-items: center; cursor: pointer;">
-                                        <input type="checkbox" name="boneOptions" value="sin-hueso" style="margin-right: 8px; width: auto;">
-                                        Sin Hueso
-                                    </label>
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>
-                                    <input type="checkbox" id="inStock" name="inStock" checked style="margin-right: 8px; width: auto;">
-                                    En Stock
-                                </label>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>
-                                    <input type="checkbox" id="featured" name="featured" style="margin-right: 8px; width: auto;">
-                                    Producto Destacado
-                                </label>
-                            </div>
-                            
-                            <button type="submit" class="btn">Guardar Variante</button>
+                    </div>
+                    
+                    <div class="form-group" id="pesoGroup" style="display: none;">
+                        <label for="peso">Peso (kg)</label>
+                        <input type="number" id="peso" name="peso" step="0.1" min="0" placeholder="Ej: 5">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="minimumKg">Mínimo de Compra (kg)</label>
+                        <input type="number" id="minimumKg" name="minimumKg" step="0.1" min="0" value="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Opciones de Corte/Entrega</label>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="formatOptions" value="entero" style="margin-right: 8px; width: auto;">
+                                Entero
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="formatOptions" value="bifes-1-dedo" style="margin-right: 8px; width: auto;">
+                                Bifes a 1 dedo
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="formatOptions" value="bifes-2-dedos" style="margin-right: 8px; width: auto;">
+                                Bifes a 2 dedos
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="formatOptions" value="bifes-3-dedos" style="margin-right: 8px; width: auto;">
+                                Bifes a 3 dedos
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="formatOptions" value="banderita" style="margin-right: 8px; width: auto;">
+                                Banderita
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="formatOptions" value="cortado-3-dedos" style="margin-right: 8px; width: auto;">
+                                Cortado a 3 dedos
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="formatOptions" value="cortado-5-dedos" style="margin-right: 8px; width: auto;">
+                                Cortado a 5 dedos
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="formatOptions" value="picado" style="margin-right: 8px; width: auto;">
+                                Picado
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="formatOptions" value="milanesas" style="margin-right: 8px; width: auto;">
+                                Milanesas
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Opciones de Hueso</label>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="boneOptions" value="con-hueso" style="margin-right: 8px; width: auto;">
+                                Con Hueso
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" name="boneOptions" value="sin-hueso" style="margin-right: 8px; width: auto;">
+                                Sin Hueso
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="inStock" name="inStock" checked style="margin-right: 8px; width: auto;">
+                            En Stock
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="featured" name="featured" style="margin-right: 8px; width: auto;">
+                            Producto Destacado
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn">Guardar Variante</button>
                             <button type="button" class="btn btn-secondary" onclick="resetVarianteForm()" style="margin-left: 10px;">Limpiar Formulario</button>
-                        </form>
+                </form>
                     </div>
                 </div>
             </div>
@@ -390,7 +390,7 @@
                             <small>Formatos aceptados: JPG, PNG, WEBP. Tamaño recomendado: 800x600 px.</small>
                         </div>
                         
-                        <div class="section-divider">
+                        <div class="section-divider" id="primeraVarianteSection">
                             <h3 class="section-title">➕ Primera Variante del Producto</h3>
                             <p style="color: var(--gris-medio); margin-bottom: 20px;">Al crear el producto, también se creará automáticamente su primera variante.</p>
                             
@@ -526,6 +526,10 @@
         let varianteDocId = null;
         let varianteImagenActual = '';
         let varianteEditData = null;
+        let editandoProductoBase = false;
+        let productoBaseEdicionId = null;
+        let productoBaseImagenActual = '';
+        let productoBaseNombreOriginal = '';
         
         const uploadImage = async (file, path) => {
             if (!file) return '';
@@ -540,6 +544,9 @@
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             
             if (tabName === 'productos') {
+                if (editandoProductoBase) {
+                    restaurarModoCreacionBase();
+                }
                 document.querySelector('.tab:first-child').classList.add('active');
                 document.getElementById('tabProductos').classList.add('active');
             } else {
@@ -630,15 +637,17 @@
                 return;
             }
 
-            if (pendienteSeleccion.type === 'variante') {
+            if (pendienteSeleccion.type === 'productoBase') {
+                prepararEdicionProductoBase(pendienteSeleccion.data);
+            } else if (pendienteSeleccion.type === 'variante') {
                 const baseName = pendienteSeleccion.data.baseName || pendienteSeleccion.data.name;
                 const index = productosData.findIndex(p => p.name === baseName);
                 if (index !== -1) {
                     seleccionarProducto(index, { editarVariante: pendienteSeleccion.data });
                 } else {
                     messageDiv.innerHTML = '<div class="message error">❌ No se encontró el producto seleccionado para edición.</div>';
-                    setTimeout(() => {
-                        messageDiv.innerHTML = '';
+                setTimeout(() => {
+                    messageDiv.innerHTML = '';
                     }, 4000);
                 }
             }
@@ -700,7 +709,7 @@
             
             // Mostrar formulario de variante
             document.getElementById('selectedProductName').textContent = productoSeleccionado.name;
-            document.getElementById('varianteSection').style.display = 'block';
+                document.getElementById('varianteSection').style.display = 'block';
             document.getElementById('varianteSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             
             // Limpiar formulario
@@ -731,17 +740,17 @@
             }
 
             document.getElementById('marcaNombre').value = data.variant || (data.name && data.name.split(' - ')[1]) || data.name || '';
-            document.getElementById('descripcion').value = data.description || '';
-            document.getElementById('precio').value = data.price || 0;
-
+                document.getElementById('descripcion').value = data.description || '';
+                document.getElementById('precio').value = data.price || 0;
+                
             const sellByValue = data.sellBy ||
                 (data.sale_format && data.sale_format.toLowerCase().includes('unidad') ? 'unidad' :
                     (data.sale_format && data.sale_format.toLowerCase().includes('kg') ? 'kg' : ''));
             if (sellByValue) {
                 document.getElementById('sellBy').value = sellByValue;
-            }
-            togglePesoField();
-
+                }
+                togglePesoField();
+                
             const minimo = data.minimumKg || data.minimum_kg || '';
             document.getElementById('minimumKg').value = minimo || 0;
 
@@ -777,6 +786,153 @@
             document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
                 cb.checked = valuesSet.has(cb.value);
             });
+        }
+
+        function configurarCamposVarianteNuevoRequeridos(activo) {
+            ['marcaNombreNuevo', 'imagenVarianteNuevo', 'descripcionNuevo', 'precioNuevo', 'sellByNuevo'].forEach(id => {
+                const field = document.getElementById(id);
+                if (field) {
+                    field.required = activo;
+                }
+            });
+        }
+
+        function prepararEdicionProductoBase(data) {
+            editandoProductoBase = true;
+            productoBaseEdicionId = data.id || null;
+            productoBaseImagenActual = data.image || data.image_url || '';
+            productoBaseNombreOriginal = data.name || '';
+
+            mostrarTab('nuevo');
+
+            const form = document.getElementById('productoCompletoForm');
+            if (form) {
+                form.reset();
+            }
+
+            const nombreInput = document.getElementById('nombreBaseNuevo');
+            if (nombreInput) {
+                nombreInput.value = data.name || '';
+            }
+
+            const categoriaSelect = document.getElementById('categoriaNuevo');
+            if (categoriaSelect) {
+                const normalized = (data.category || '').toLowerCase();
+                const opciones = Array.from(categoriaSelect.options).map(option => option.value);
+                if (opciones.includes(normalized)) {
+                    categoriaSelect.value = normalized;
+                } else if (data.category && opciones.includes(data.category)) {
+                    categoriaSelect.value = data.category;
+                } else {
+                    categoriaSelect.value = '';
+                }
+            }
+
+            const imagenInput = document.getElementById('imagenFileNuevo');
+            if (imagenInput) {
+                imagenInput.value = '';
+                imagenInput.required = false;
+            }
+
+            configurarCamposVarianteNuevoRequeridos(false);
+
+            const varianteSection = document.getElementById('primeraVarianteSection');
+            if (varianteSection) {
+                varianteSection.style.display = 'none';
+            }
+
+            const submitBtn = document.querySelector('#productoCompletoForm button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.textContent = 'Guardar cambios del producto base';
+            }
+
+            messageDiv.innerHTML = '<div class="message">✏️ Editando el producto base seleccionado. Carga una nueva imagen solo si querés reemplazarla.</div>';
+        }
+
+        function restaurarModoCreacionBase() {
+            editandoProductoBase = false;
+            productoBaseEdicionId = null;
+            productoBaseImagenActual = '';
+            productoBaseNombreOriginal = '';
+            messageDiv.innerHTML = '';
+
+            const imagenInput = document.getElementById('imagenFileNuevo');
+            if (imagenInput) {
+                imagenInput.required = true;
+                imagenInput.value = '';
+            }
+
+            configurarCamposVarianteNuevoRequeridos(true);
+
+            const varianteSection = document.getElementById('primeraVarianteSection');
+            if (varianteSection) {
+                varianteSection.style.display = '';
+            }
+
+            const submitBtn = document.querySelector('#productoCompletoForm button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.textContent = 'Crear Producto y Primera Variante';
+            }
+
+            togglePesoFieldNuevo();
+        }
+
+        async function actualizarVariantesBase(nombreAnterior, nombreNuevo, categoria, imagenBaseUrl) {
+            const variantesRef = window.collection(window.db, 'products');
+            const updates = [];
+            const idsActualizados = new Set();
+            const ahora = new Date().toISOString();
+
+            if (!nombreAnterior) {
+                nombreAnterior = nombreNuevo;
+            }
+
+            const snapshotBase = await window.getDocs(
+                window.query(variantesRef, window.where('baseProduct', '==', nombreAnterior))
+            );
+
+            snapshotBase.forEach(docSnap => {
+                idsActualizados.add(docSnap.id);
+                const data = docSnap.data();
+                const variantName = data.variant || (data.name && data.name.includes(' - ') ? data.name.split(' - ')[1] : '');
+                const nuevoNombreCompleto = variantName ? `${nombreNuevo} - ${variantName}` : nombreNuevo;
+                updates.push(window.updateDoc(docSnap.ref, {
+                    baseProduct: nombreNuevo,
+                    name: nuevoNombreCompleto,
+                    category: categoria,
+                    baseImage: imagenBaseUrl,
+                    updated_at: ahora
+                }));
+            });
+
+            const prefix = `${nombreAnterior} - `;
+            const snapshotFallback = await window.getDocs(
+                window.query(
+                    variantesRef,
+                    window.where('name', '>=', prefix),
+                    window.where('name', '<=', `${prefix}\uf8ff`)
+                )
+            );
+
+            snapshotFallback.forEach(docSnap => {
+                if (idsActualizados.has(docSnap.id)) {
+                    return;
+                }
+                const data = docSnap.data();
+                const variantName = data.variant || (data.name && data.name.includes(' - ') ? data.name.split(' - ')[1] : '');
+                const nuevoNombreCompleto = variantName ? `${nombreNuevo} - ${variantName}` : nombreNuevo;
+                updates.push(window.updateDoc(docSnap.ref, {
+                    baseProduct: nombreNuevo,
+                    name: nuevoNombreCompleto,
+                    category: categoria,
+                    baseImage: imagenBaseUrl,
+                    updated_at: ahora
+                }));
+            });
+
+            if (updates.length > 0) {
+                await Promise.all(updates);
+            }
         }
 
         function seleccionarProductoPorNombre(nombre, options = {}) {
@@ -889,11 +1045,49 @@
         document.getElementById('productoCompletoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            const esEdicionBase = editandoProductoBase && productoBaseEdicionId;
             const nombreBase = document.getElementById('nombreBaseNuevo').value;
             const categoria = document.getElementById('categoriaNuevo').value;
             const imagenFile = document.getElementById('imagenFileNuevo').files[0];
             const imagenVarianteFile = document.getElementById('imagenVarianteNuevo').files[0];
             
+            if (esEdicionBase) {
+                try {
+                    let imagenBaseUrl = productoBaseImagenActual;
+                    const slug = nombreBase.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+                    
+                    if (imagenFile) {
+                        imagenBaseUrl = await uploadImage(imagenFile, `products/${slug}/main-${Date.now()}`);
+                    }
+                    
+                    await window.updateDoc(window.doc(window.db, 'products', productoBaseEdicionId), {
+                        name: nombreBase,
+                        category: categoria,
+                        image: imagenBaseUrl,
+                        image_url: imagenBaseUrl,
+                        updated_at: new Date().toISOString()
+                    });
+
+                    const nombreAnterior = productoBaseNombreOriginal || nombreBase;
+                    await actualizarVariantesBase(nombreAnterior, nombreBase, categoria, imagenBaseUrl);
+
+                    messageDiv.innerHTML = '<div class="message success">✅ Producto base actualizado correctamente</div>';
+                    restaurarModoCreacionBase();
+                    mostrarTab('productos');
+                    cargarProductos();
+
+                    setTimeout(() => {
+                        messageDiv.innerHTML = '';
+                    }, 3000);
+
+                } catch (error) {
+                    console.error('Error al actualizar el producto base:', error);
+                    messageDiv.innerHTML = '<div class="message error">❌ Error al actualizar el producto base. Intente nuevamente.</div>';
+                }
+
+                return;
+            }
+
             if (!imagenFile || !imagenVarianteFile) {
                 messageDiv.innerHTML = '<div class="message error">❌ Debes subir ambas imágenes (producto base y variante).</div>';
                 return;
@@ -1028,6 +1222,18 @@
         
         // Cargar productos al iniciar y procesar ediciones pendientes
         window.addEventListener('DOMContentLoaded', () => {
+            const editarProductoBaseRaw = sessionStorage.getItem('editarProductoBase');
+            if (editarProductoBaseRaw) {
+                try {
+                    const data = JSON.parse(editarProductoBaseRaw);
+                    pendienteSeleccion = { type: 'productoBase', data };
+                    mostrarTab('nuevo');
+                } catch (error) {
+                    console.error('Error al restaurar el producto base a editar:', error);
+                }
+                sessionStorage.removeItem('editarProductoBase');
+            }
+
             const editarVarianteRaw = sessionStorage.getItem('editarVariante');
             if (editarVarianteRaw) {
                 try {
