@@ -243,11 +243,11 @@
                         <input type="text" id="marcaNombre" name="marcaNombre" placeholder="Ej: Tresnal, Fresco, Premium" required>
                     </div>
                     
-                    <div class="form-group">
-                        <label for="imagenVariante">Imagen de la variante *</label>
+                            <div class="form-group">
+                                <label for="imagenVariante">Imagen de la variante (opcional)</label>
                                 <input type="file" id="imagenVariante" name="imagenVariante" accept="image/*">
-                        <small>Sube la foto específica de esta marca/presentación.</small>
-                    </div>
+                                <small>Sube la foto específica de esta marca/presentación o deja vacío para usar la imagen base.</small>
+                            </div>
                     
                     <div class="image-preview" id="varianteImagePreview" style="display: none;">
                         <p>Imagen actual de la variante:</p>
@@ -400,9 +400,9 @@
                             </div>
                             
                             <div class="form-group">
-                                <label for="imagenVarianteNuevo">Imagen de la variante *</label>
-                                <input type="file" id="imagenVarianteNuevo" name="imagenVarianteNuevo" accept="image/*" required>
-                                <small>Sube la foto específica de esta marca/presentación.</small>
+                                <label for="imagenVarianteNuevo">Imagen de la variante (opcional)</label>
+                                <input type="file" id="imagenVarianteNuevo" name="imagenVarianteNuevo" accept="image/*">
+                                <small>Sube la foto específica de esta marca/presentación o deja vacío para usar la imagen base.</small>
                             </div>
                             
                             <div class="form-group">
@@ -789,12 +789,17 @@
         }
 
         function configurarCamposVarianteNuevoRequeridos(activo) {
-            ['marcaNombreNuevo', 'imagenVarianteNuevo', 'descripcionNuevo', 'precioNuevo', 'sellByNuevo'].forEach(id => {
+            ['marcaNombreNuevo', 'descripcionNuevo', 'precioNuevo', 'sellByNuevo'].forEach(id => {
                 const field = document.getElementById(id);
                 if (field) {
                     field.required = activo;
                 }
             });
+
+            const imagenVariante = document.getElementById('imagenVarianteNuevo');
+            if (imagenVariante) {
+                imagenVariante.required = false;
+            }
         }
 
         function prepararEdicionProductoBase(data) {
@@ -956,11 +961,6 @@
             const imagenVarianteFile = document.getElementById('imagenVariante').files[0];
             const esEdicion = editandoVariante && varianteDocId;
             
-            if (!esEdicion && !imagenVarianteFile) {
-                messageDiv.innerHTML = '<div class="message error">❌ Debes subir la imagen de la variante.</div>';
-                return;
-            }
-            
             const variante = {
                 name: document.getElementById('marcaNombre').value,
                 description: document.getElementById('descripcion').value,
@@ -1088,8 +1088,8 @@
                 return;
             }
 
-            if (!imagenFile || !imagenVarianteFile) {
-                messageDiv.innerHTML = '<div class="message error">❌ Debes subir ambas imágenes (producto base y variante).</div>';
+            if (!imagenFile) {
+                messageDiv.innerHTML = '<div class="message error">❌ Debes subir la imagen principal del producto.</div>';
                 return;
             }
             
@@ -1145,8 +1145,14 @@
                 
                 const nombreCompleto = nombreBase + ' - ' + variante.name;
                 const slugVariante = variante.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
-                const varianteUrl = await uploadImage(imagenVarianteFile, `products/${slug}/variantes/${slugVariante}-${Date.now()}`);
-                
+                let varianteUrl = imagenBaseUrl;
+                if (imagenVarianteFile) {
+                    varianteUrl = await uploadImage(imagenVarianteFile, `products/${slug}/variantes/${slugVariante}-${Date.now()}`);
+                }
+                if (!varianteUrl) {
+                    varianteUrl = imagenBaseUrl;
+                }
+
                 const productoCompleto = {
                     name: nombreCompleto,
                     baseProduct: nombreBase,
