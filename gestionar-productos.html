@@ -367,7 +367,7 @@
                         const formatOptions = variant.formatOptions || [];
                         const boneOptions = variant.boneOptions || [];
                         const variantImage = variant.image || variant.image_url || variant.baseImage || baseImage || '';
-                        const variantData = {
+                                const variantData = {
                             id: variant.id,
                             baseId: baseData.id || '',
                             baseName: baseName,
@@ -380,7 +380,6 @@
                             sellBy: variant.sellBy || '',
                             sale_format: variant.sale_format || '',
                             minimumKg: variant.minimumKg || variant.minimum_kg || 0,
-                            stock: variant.stock || 0,
                             inStock: !!variant.inStock,
                             featured: !!variant.featured,
                             formatOptions,
@@ -405,7 +404,6 @@
                                 <div class="variant-info"><strong>Precio:</strong> $${variant.price?.toFixed(2) || '0.00'}</div>
                                 <div class="variant-info"><strong>Venta:</strong> ${variant.sale_format || variant.sellBy || 'N/A'}</div>
                                 ${variant.minimumKg ? `<div class="variant-info"><strong>Peso:</strong> ${variant.minimumKg} kg</div>` : ''}
-                                <div class="variant-info"><strong>Stock:</strong> ${variant.stock || 0}</div>
                                 <div style="margin-top: 10px;">
                                     ${variant.inStock ? '<span class="badge badge-success">En Stock</span>' : '<span class="badge badge-danger">Sin Stock</span>'}
                                     ${variant.featured ? '<span class="badge badge-info">Destacado</span>' : ''}

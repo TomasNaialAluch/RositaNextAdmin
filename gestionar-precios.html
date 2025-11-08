@@ -308,7 +308,6 @@
                             <th>Precio Actual</th>
                             <th>Nuevo Precio</th>
                             <th>Formato Venta</th>
-                            <th>Stock</th>
                             <th>Estado</th>
                             <th>Acciones</th>
                         </tr>
@@ -354,7 +353,6 @@
                             price: producto.price || 0,
                             sellBy: producto.sellBy || '',
                             sale_format: producto.sale_format || '',
-                            stock: producto.stock || 0,
                             inStock: producto.inStock !== false,
                             ...producto
                         });
@@ -400,7 +398,6 @@
                                    onchange="marcarCambio('${producto.id}', this.value)">
                         </td>
                         <td>${producto.sale_format || producto.sellBy || '-'}</td>
-                        <td>${producto.stock || 0}</td>
                         <td>
                             <span class="stock-badge ${producto.inStock ? 'in-stock' : 'out-of-stock'}">
                                 ${producto.inStock ? 'En Stock' : 'Sin Stock'}
@@ -725,14 +722,13 @@
         }
         
         function exportarCSV() {
-            const headers = ['Producto Base', 'Variante', 'Categoría', 'Precio', 'Formato Venta', 'Stock', 'Estado'];
+            const headers = ['Producto Base', 'Variante', 'Categoría', 'Precio', 'Formato Venta', 'Estado'];
             const rows = productosData.map(p => [
                 p.baseProduct,
                 p.variant || '',
                 p.category,
                 p.price.toFixed(2),
                 p.sale_format || p.sellBy || '',
-                p.stock || 0,
                 p.inStock ? 'En Stock' : 'Sin Stock'
             ]);
             

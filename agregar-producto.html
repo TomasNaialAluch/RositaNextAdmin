@@ -245,7 +245,7 @@
                             
                             <div class="form-group">
                                 <label for="imagenVariante">Imagen de la variante *</label>
-                                <input type="file" id="imagenVariante" name="imagenVariante" accept="image/*" required>
+                                <input type="file" id="imagenVariante" name="imagenVariante" accept="image/*">
                                 <small>Sube la foto específica de esta marca/presentación.</small>
                             </div>
                             
@@ -339,11 +339,6 @@
                                         Sin Hueso
                                     </label>
                                 </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="stock">Stock Disponible *</label>
-                                <input type="number" id="stock" name="stock" min="0" required>
                             </div>
                             
                             <div class="form-group">
@@ -498,11 +493,6 @@
                             </div>
                             
                             <div class="form-group">
-                                <label for="stockNuevo">Stock Disponible *</label>
-                                <input type="number" id="stockNuevo" name="stockNuevo" min="0" required>
-                            </div>
-                            
-                            <div class="form-group">
                                 <label>
                                     <input type="checkbox" id="inStockNuevo" name="inStockNuevo" checked style="margin-right: 8px; width: auto;">
                                     En Stock
@@ -531,6 +521,11 @@
         let productoSeleccionado = null;
         let productoBaseId = null;
         let productoBaseImagen = '';
+        let pendienteSeleccion = null;
+        let editandoVariante = false;
+        let varianteDocId = null;
+        let varianteImagenActual = '';
+        let varianteEditData = null;
         
         const uploadImage = async (file, path) => {
             if (!file) return '';
@@ -597,6 +592,7 @@
                 
                 productosData = Object.values(productosBase);
                 renderizarProductos();
+                aplicarPendienteSeleccion();
                 
             } catch (error) {
                 console.error('Error al cargar productos:', error);
@@ -628,6 +624,27 @@
             
             containerDiv.innerHTML = html;
         }
+
+        function aplicarPendienteSeleccion() {
+            if (!pendienteSeleccion) {
+                return;
+            }
+
+            if (pendienteSeleccion.type === 'variante') {
+                const baseName = pendienteSeleccion.data.baseName || pendienteSeleccion.data.name;
+                const index = productosData.findIndex(p => p.name === baseName);
+                if (index !== -1) {
+                    seleccionarProducto(index, { editarVariante: pendienteSeleccion.data });
+                } else {
+                    messageDiv.innerHTML = '<div class="message error">❌ No se encontró el producto seleccionado para edición.</div>';
+                    setTimeout(() => {
+                        messageDiv.innerHTML = '';
+                    }, 4000);
+                }
+            }
+
+            pendienteSeleccion = null;
+        }
         
         function filtrarProductos() {
             const searchTerm = (document.getElementById('searchProductos').value || '').toLowerCase();
@@ -646,7 +663,7 @@
             productosData = originalData;
         }
         
-        async function seleccionarProducto(index) {
+        async function seleccionarProducto(index, options = {}) {
             productoSeleccionado = productosData[index];
             
             // Buscar el producto base en Firebase
@@ -688,6 +705,9 @@
             
             // Limpiar formulario
             resetVarianteForm();
+            if (options.editarVariante) {
+                prepararEdicionVariante(options.editarVariante);
+            }
         }
         
         function cancelarSeleccion() {
@@ -697,6 +717,73 @@
             document.querySelectorAll('.producto-card').forEach(card => card.classList.remove('selected'));
             document.getElementById('varianteSection').style.display = 'none';
             resetVarianteForm();
+        }
+
+        function prepararEdicionVariante(data) {
+            editandoVariante = true;
+            varianteDocId = data.id || null;
+            varianteImagenActual = data.image || data.image_url || '';
+            varianteEditData = data;
+
+            const imagenInput = document.getElementById('imagenVariante');
+            if (imagenInput) {
+                imagenInput.required = false;
+            }
+
+            document.getElementById('marcaNombre').value = data.variant || (data.name && data.name.split(' - ')[1]) || data.name || '';
+            document.getElementById('descripcion').value = data.description || '';
+            document.getElementById('precio').value = data.price || 0;
+
+            const sellByValue = data.sellBy ||
+                (data.sale_format && data.sale_format.toLowerCase().includes('unidad') ? 'unidad' :
+                    (data.sale_format && data.sale_format.toLowerCase().includes('kg') ? 'kg' : ''));
+            if (sellByValue) {
+                document.getElementById('sellBy').value = sellByValue;
+            }
+            togglePesoField();
+
+            const minimo = data.minimumKg || data.minimum_kg || '';
+            document.getElementById('minimumKg').value = minimo || 0;
+
+            if (sellByValue === 'unidad') {
+                document.getElementById('peso').value = minimo || '';
+            } else {
+                document.getElementById('peso').value = '';
+            }
+
+            setCheckedValues('formatOptions', data.formatOptions || []);
+            setCheckedValues('boneOptions', data.boneOptions || []);
+
+            document.getElementById('inStock').checked = data.inStock !== false;
+            document.getElementById('featured').checked = !!data.featured;
+
+            const preview = document.getElementById('varianteImagePreview');
+            const previewImg = document.getElementById('varianteImagePreviewImg');
+            if (varianteImagenActual && preview && previewImg) {
+                previewImg.src = varianteImagenActual;
+                preview.style.display = 'block';
+            }
+
+            const submitBtn = document.querySelector('#varianteForm button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.textContent = 'Guardar cambios';
+            }
+
+            messageDiv.innerHTML = '<div class="message">✏️ Editando variante existente. Ajusta los datos y guarda los cambios.</div>';
+        }
+
+        function setCheckedValues(name, values) {
+            const valuesSet = new Set(values || []);
+            document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
+                cb.checked = valuesSet.has(cb.value);
+            });
+        }
+
+        function seleccionarProductoPorNombre(nombre, options = {}) {
+            const index = productosData.findIndex(p => p.name === nombre);
+            if (index !== -1) {
+                seleccionarProducto(index, options);
+            }
         }
         
         // Formulario de Variante (para productos existentes)
@@ -711,8 +798,9 @@
             const formatOptions = Array.from(document.querySelectorAll('input[name="formatOptions"]:checked')).map(cb => cb.value);
             const boneOptions = Array.from(document.querySelectorAll('input[name="boneOptions"]:checked')).map(cb => cb.value);
             const imagenVarianteFile = document.getElementById('imagenVariante').files[0];
+            const esEdicion = editandoVariante && varianteDocId;
             
-            if (!imagenVarianteFile) {
+            if (!esEdicion && !imagenVarianteFile) {
                 messageDiv.innerHTML = '<div class="message error">❌ Debes subir la imagen de la variante.</div>';
                 return;
             }
@@ -723,13 +811,10 @@
                 price: parseFloat(document.getElementById('precio').value),
                 sellBy: document.getElementById('sellBy').value,
                 sale_format: document.getElementById('sellBy').value === 'unidad' ? 'Por unidad' : 'Por kilogramo',
-                stock: parseInt(document.getElementById('stock').value),
                 inStock: document.getElementById('inStock').checked,
                 featured: document.getElementById('featured').checked,
                 formatOptions: formatOptions,
                 boneOptions: boneOptions,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
             };
             
             if (document.getElementById('sellBy').value === 'unidad') {
@@ -747,25 +832,46 @@
             }
             
             try {
+                const ahora = new Date().toISOString();
+                if (esEdicion) {
+                    variante.created_at = varianteEditData?.created_at || ahora;
+                    variante.updated_at = ahora;
+                } else {
+                    variante.created_at = ahora;
+                    variante.updated_at = ahora;
+                }
+
                 const nombreCompleto = productoSeleccionado.name + ' - ' + variante.name;
                 const slugBase = productoSeleccionado.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
                 const slugVariante = variante.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
-                const varianteUrl = await uploadImage(imagenVarianteFile, `products/${slugBase}/variantes/${slugVariante}-${Date.now()}`);
+                
+                let varianteUrl = varianteImagenActual;
+                if (imagenVarianteFile) {
+                    varianteUrl = await uploadImage(imagenVarianteFile, `products/${slugBase}/variantes/${slugVariante}-${Date.now()}`);
+                }
+                if (!varianteUrl) {
+                    varianteUrl = productoBaseImagen;
+                }
                 
                 const productoCompleto = {
                     name: nombreCompleto,
                     baseProduct: productoSeleccionado.name,
                     variant: variante.name,
                     category: productoSeleccionado.category,
-                    image: varianteUrl || productoBaseImagen,
-                    image_url: varianteUrl || productoBaseImagen,
+                    image: varianteUrl,
+                    image_url: varianteUrl,
                     baseImage: productoBaseImagen,
                     ...variante
                 };
                 
-                await window.addDoc(window.collection(window.db, 'products'), productoCompleto);
-                
-                messageDiv.innerHTML = '<div class="message success">✅ Variante agregada correctamente</div>';
+                if (esEdicion) {
+                    await window.updateDoc(window.doc(window.db, 'products', varianteDocId), productoCompleto);
+                    messageDiv.innerHTML = '<div class="message success">✅ Variante actualizada correctamente</div>';
+                } else {
+                    await window.addDoc(window.collection(window.db, 'products'), productoCompleto);
+                    messageDiv.innerHTML = '<div class="message success">✅ Variante agregada correctamente</div>';
+                }
+
                 resetVarianteForm();
                 cargarProductos();
                 
@@ -774,8 +880,8 @@
                 }, 3000);
                 
             } catch (error) {
-                console.error('Error al agregar variante:', error);
-                messageDiv.innerHTML = '<div class="message error">❌ Error al agregar la variante. Intente nuevamente.</div>';
+                console.error('Error al guardar la variante:', error);
+                messageDiv.innerHTML = '<div class="message error">❌ Error al guardar la variante. Intente nuevamente.</div>';
             }
         });
         
@@ -821,7 +927,6 @@
                     price: parseFloat(document.getElementById('precioNuevo').value),
                     sellBy: document.getElementById('sellByNuevo').value,
                     sale_format: document.getElementById('sellByNuevo').value === 'unidad' ? 'Por unidad' : 'Por kilogramo',
-                    stock: parseInt(document.getElementById('stockNuevo').value),
                     inStock: document.getElementById('inStockNuevo').checked,
                     featured: document.getElementById('featuredNuevo').checked,
                     formatOptions: formatOptions,
@@ -877,10 +982,34 @@
         });
         
         function resetVarianteForm() {
-            document.getElementById('varianteForm').reset();
+            const form = document.getElementById('varianteForm');
+            if (form) {
+                form.reset();
+            }
+            editandoVariante = false;
+            varianteDocId = null;
+            varianteImagenActual = '';
+            varianteEditData = null;
+
+            const imagenInput = document.getElementById('imagenVariante');
+            if (imagenInput) {
+                imagenInput.value = '';
+                imagenInput.required = true;
+            }
+
             document.getElementById('inStock').checked = true;
+            document.getElementById('featured').checked = false;
             togglePesoField();
-            document.getElementById('imagenVariante').value = '';
+
+            const preview = document.getElementById('varianteImagePreview');
+            if (preview) {
+                preview.style.display = 'none';
+            }
+
+            const submitBtn = document.querySelector('#varianteForm button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.textContent = 'Guardar Variante';
+            }
         }
         
         // Verificar si está ejecutándose desde file://
@@ -897,8 +1026,22 @@
             `;
         }
         
-        // Cargar productos al iniciar
-        window.addEventListener('DOMContentLoaded', cargarProductos);
+        // Cargar productos al iniciar y procesar ediciones pendientes
+        window.addEventListener('DOMContentLoaded', () => {
+            const editarVarianteRaw = sessionStorage.getItem('editarVariante');
+            if (editarVarianteRaw) {
+                try {
+                    varianteEditData = JSON.parse(editarVarianteRaw);
+                    pendienteSeleccion = { type: 'variante', data: varianteEditData };
+                    mostrarTab('productos');
+                } catch (error) {
+                    console.error('Error al restaurar la variante a editar:', error);
+                }
+                sessionStorage.removeItem('editarVariante');
+            }
+
+            cargarProductos();
+        });
     </script>
 </body>
 </html>
